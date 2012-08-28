@@ -32,8 +32,7 @@ The "Packages" directory is located at:
 Config
 ------
 
-Default Flake8Lint config:
-"Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - Default"
+Default Flake8Lint config: "Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - Default"
 
 	{
 		// run flake8 lint on file saving
@@ -52,9 +51,7 @@ Default Flake8Lint config:
 		"ignore": []
 	}
 
-To change default settings, go to:
-"Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - User"
-And paste default config to opened file.
+To change default settings, go to "Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - User" and paste default config to opened file.
 
 Features / Usage
 ----------------
