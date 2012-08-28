@@ -29,6 +29,33 @@ The "Packages" directory is located at:
 
         %APPDATA%/Sublime Text 2/Packages/
 
+Config
+------
+
+Default Flake8Lint config:
+"Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - Default"
+
+	{
+		// run flake8 lint on file saving
+		"lint_on_save": true,
+
+		// turn on pyflakes error lint
+		"pyflakes": true,
+		// turn on pep8 error lint
+		"pep8": true,
+		// turn off complexity check (set number > 0 to check complexity level)
+		"complexity": -1,
+
+		// select errors and warnings (e.g. ["E", "W6"])
+		"select": [],
+		//skip errors and warnings (e.g. ["E303", E4", "W"])
+		"ignore": []
+	}
+
+To change default settings, go to:
+"Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - User"
+And paste default config to opened file.
+
 Features / Usage
 ----------------
 
