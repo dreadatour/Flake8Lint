@@ -5,7 +5,7 @@ import sublime_plugin
 # We will use Stéphane Klein fork of flake8 until it not merged into flake8.
 # This version includes last version of pep8.
 # See: https://bitbucket.org/tarek/flake8/issue/23/use-pep8-configuration-file
-from flake8_harobed import pyflakes, pep8, mccabe
+from flake8_harobed import pyflakes, pep8, mccabe, util
 
 # Monkey-patching is a big evil (don't do this),
 # but hardcode is a much more bigger evil. Hate hardcore!
@@ -102,6 +102,9 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             # get error line
             line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
             line_text = self.view.substr(line).strip()
+            # skip line if 'NOQA' defined
+            if util.skip_line(line_text):
+                continue
             # build line error message
             error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
             if error not in errors:
