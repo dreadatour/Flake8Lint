@@ -103,7 +103,9 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
             line_text = self.view.substr(line).strip()
             # build line error message
-            errors.append([e[2], u'{0}: {1}'.format(e[0], line_text)])
+            error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
+            if error not in errors:
+                errors.append([e[2], u'{0}: {1}'.format(e[0], line_text)])
 
         # view errors window
         self.view.window().show_quick_panel(errors, self.error_selected)

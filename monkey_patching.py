@@ -25,7 +25,7 @@ def pyflakes_check(codeString, filename='(code)'):
     except SyntaxError:
         # Return syntax error
         value = sys.exc_info()[1]
-        return [(value.lineno, 0, value.args[0])]
+        return [(value.lineno, value.offset, value.args[0])]
     else:
         # Okay, it's syntactically valid.  Now check it.
         w = Checker(tree, filename)
@@ -50,9 +50,9 @@ def mccabe_get_code_complexity(code, min=7, filename='stdin'):
     result = []
     try:
         ast = parse(code)
-    except AttributeError:
+    except (AttributeError, SyntaxError):
         value = sys.exc_info()[1]
-        return [(value.lineno, 0, value.args[0])]
+        return [(value.lineno, value.offset, value.args[0])]
 
     visitor = PathGraphingAstVisitor()
     visitor.preorder(ast, visitor)
