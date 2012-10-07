@@ -64,6 +64,10 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         if self.view.is_dirty():
             self.view.run_command('save')
 
+        # skip file check if 'flake8: noqa' header is set
+        if util.skip_file(filename):
+            return
+
         # place for warnings =)
         warnings = []
 
