@@ -11,6 +11,7 @@ except ImportError:
 
 import optparse
 import sys
+from .util import skip_warning
 from collections import defaultdict
 
 WARNING_CODE = "W901"
@@ -231,7 +232,7 @@ def get_code_complexity(code, min=7, filename='stdin'):
     complex = []
     try:
         ast = parse(code)
-    except AttributeError:
+    except (AttributeError, SyntaxError):
         e = sys.exc_info()[1]
         sys.stderr.write("Unable to parse %s: %s\n" % (filename, e))
         return 0
@@ -243,14 +244,16 @@ def get_code_complexity(code, min=7, filename='stdin'):
             # ?
             continue
         if graph.complexity() >= min:
-            msg = '%s:%d:1: %s %r is too complex (%d)' % (
-                filename,
-                graph.lineno,
-                WARNING_CODE,
-                graph.entity,
-                graph.complexity(),
-            )
-            complex.append(msg)
+            graph.filename = filename
+            if not skip_warning(graph):
+                msg = '%s:%d:1: %s %r is too complex (%d)' % (
+                    filename,
+                    graph.lineno,
+                    WARNING_CODE,
+                    graph.entity,
+                    graph.complexity(),
+                )
+                complex.append(msg)
 
     if len(complex) == 0:
         return 0
