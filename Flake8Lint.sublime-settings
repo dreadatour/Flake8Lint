@@ -2,6 +2,12 @@
 	// run flake8 lint on file saving
 	"lint_on_save": true,
 
+	// set python interpreter (lint files for python >= 2.7):
+	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
+	// - 'auto' for search default system python interpreter (default value)
+	// - absolute path to python interpreter for define another one
+	"python_interpreter": "auto",
+
 	// turn on pyflakes error lint
 	"pyflakes": true,
 	// turn on pep8 error lint

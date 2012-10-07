@@ -1,44 +1,14 @@
 # -*- coding: utf-8 -*-
+import os
+
 import sublime
 import sublime_plugin
 
-# We will use Stéphane Klein fork of flake8 until it not merged into flake8.
-# This version includes last version of pep8.
-# See: https://bitbucket.org/tarek/flake8/issue/23/use-pep8-configuration-file
-from flake8_harobed import pyflakes, pep8, mccabe, util
-
-# Monkey-patching is a big evil (don't do this),
-# but hardcode is a much more bigger evil. Hate hardcore!
-from monkey_patching import pyflakes_check, mccabe_get_code_complexity
-pyflakes.check = pyflakes_check
-mccabe.get_code_complexity = mccabe_get_code_complexity
+from flake8_harobed.util import skip_line
+from lint import lint, lint_external
 
 
 settings = sublime.load_settings("Flake8Lint.sublime-settings")
-
-
-class Pep8Report(pep8.BaseReport):
-    """
-    Collect all results of the checks.
-    """
-    def __init__(self, options):
-        """
-        Initialize reporter.
-        """
-        super(Pep8Report, self).__init__(options)
-        # errors "collection"
-        self.errors = []
-
-    def error(self, line_number, offset, text, check):
-        """
-        Get error and save it into errors collection.
-        """
-        code = super(Pep8Report, self).error(line_number, offset, text, check)
-        if code:
-            self.errors.append(
-                (self.line_offset + line_number, offset, text)
-            )
-        return code
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
@@ -50,7 +20,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         Run flake8 lint.
         """
         # current file name
-        filename = self.view.file_name()
+        filename = os.path.abspath(self.view.file_name())
 
         # check if active view contains file
         if not filename:
@@ -64,36 +34,27 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         if self.view.is_dirty():
             self.view.run_command('save')
 
-        # skip file check if 'flake8: noqa' header is set
-        if util.skip_file(filename):
-            return
+        # try to get interpreter
+        interpreter = settings.get('python_interpreter', 'auto')
 
-        # place for warnings =)
-        warnings = []
+        if not interpreter or interpreter == 'internal':
+            # if interpreter is Sublime Text 2 internal python - lint file
+            self.warnings = lint(filename, settings)
+        else:
+            # else - check interpreter
+            if interpreter == 'auto':
+                interpreter = 'python'
+            elif not os.path.exists(interpreter):
+                sublime.error_message(
+                    "Python Flake8 Lint error:\n"
+                    "python interpreter '%s' is not found" % interpreter
+                )
 
-        # lint with pyflakes
-        if settings.get('pyflakes', True):
-            warnings.extend(pyflakes.checkPath(filename))
-
-        # lint with pep8
-        if settings.get('pep8', True):
-            pep8style = pep8.StyleGuide(
-                select=settings.get('select', []),
-                ignore=settings.get('ignore', []),
-                reporter=Pep8Report
-            )
-
-            pep8style.input_file(filename)
-            warnings.extend(pep8style.options.report.errors)
-
-        # check complexity
-        complexity = settings.get('complexity', -1)
-        if complexity > -1:
-            warnings.extend(mccabe.get_module_complexity(filename, complexity))
+            # and lint file in subprocess
+            self.warnings = lint_external(filename, settings, interpreter)
 
         # show errors
-        if warnings:
-            self.warnings = warnings
+        if self.warnings:
             self.show_errors()
 
     def show_errors(self):
@@ -107,7 +68,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
             line_text = self.view.substr(line).strip()
             # skip line if 'NOQA' defined
-            if util.skip_line(line_text):
+            if skip_line(line_text):
                 continue
             # build line error message
             error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
