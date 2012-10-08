@@ -74,11 +74,10 @@ def lint(filename, settings):
     return warnings
 
 
-def lint_external(filename, settings, interpreter):
+def lint_external(filename, settings, interpreter, linter):
     """
     Run flake8 lint with external interpreter.
     """
-    import inspect
     import subprocess
 
     # check if active view contains file
@@ -90,12 +89,7 @@ def lint_external(filename, settings, interpreter):
         return
 
     # first argument is interpreter
-    arguments = [interpreter]
-
-    # next - lint script (current file)
-    arguments.append(
-        os.path.abspath(inspect.getfile(inspect.currentframe()))
-    )
+    arguments = [interpreter, linter]
 
     # do we need to run pyflake lint
     if settings.get('pyflakes', True):

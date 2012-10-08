@@ -50,8 +50,16 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                     "python interpreter '%s' is not found" % interpreter
                 )
 
+            # build linter path
+            linter = os.path.join(
+                sublime.packages_path(),
+                'Python Flake8 Lint',
+                'lint.py'
+            )
+
             # and lint file in subprocess
-            self.warnings = lint_external(filename, settings, interpreter)
+            self.warnings = lint_external(filename, settings,
+                                          interpreter, linter)
 
         # show errors
         if self.warnings:
