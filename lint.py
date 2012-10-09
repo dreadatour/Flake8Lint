@@ -156,6 +156,9 @@ if __name__ == "__main__":
     parser.add_argument('--ignore', help="ignore errors to lint")
 
     settings = parser.parse_args().__dict__
+    for param in ('select', 'ignore'):
+        if param in settings and settings[param]:
+            settings[param] = settings[param].split(',')
     filename = settings.pop('filename')
 
     # run lint and print errors
