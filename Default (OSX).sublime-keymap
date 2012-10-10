@@ -1,3 +1,3 @@
 [
-	{ "keys": ["ctrl+super+8"], "command": "pep8_lint" }
+	{ "keys": ["ctrl+super+8"], "command": "flake8_lint" }
 ]
