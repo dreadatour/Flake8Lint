@@ -39,7 +39,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         if not interpreter or interpreter == 'internal':
             # if interpreter is Sublime Text 2 internal python - lint file
-            self.warnings = lint(filename, settings)
+            self.errors_list = lint(filename, settings)
         else:
             # else - check interpreter
             if interpreter == 'auto':
@@ -67,20 +67,21 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 )
 
             # and lint file in subprocess
-            self.warnings = lint_external(filename, settings,
-                                          interpreter, linter)
+            self.errors_list = lint_external(filename, settings,
+                                             interpreter, linter)
 
         # show errors
-        if self.warnings:
+        if self.errors_list:
             self.show_errors()
 
     def show_errors(self):
         """
         Show all errors.
         """
-        errors = []
+        errors_to_show = []
 
-        for e in self.warnings:
+        errors_list_filtered = []
+        for e in self.errors_list:
             # get error line
             line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
             line_text = self.view.substr(line).strip()
@@ -89,11 +90,16 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 continue
             # build line error message
             error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
-            if error not in errors:
-                errors.append([e[2], u'{0}: {1}'.format(e[0], line_text)])
+            if error not in errors_to_show:
+                errors_list_filtered.append(e)
+                errors_to_show.append(
+                    [e[2], u'{0}: {1}'.format(e[0], line_text)]
+                )
+        self.errors_list = errors_list_filtered
 
         # view errors window
-        self.view.window().show_quick_panel(errors, self.error_selected)
+        self.view.window().show_quick_panel(errors_to_show,
+                                            self.error_selected)
 
     def error_selected(self, item_selected):
         """
@@ -107,7 +113,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         selection.clear()
 
         # get error region
-        error = self.warnings[item_selected]
+        error = self.errors_list[item_selected]
         region_begin = self.view.text_point(error[0] - 1, error[1])
 
         # go to error
