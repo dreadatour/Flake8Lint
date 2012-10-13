@@ -90,19 +90,19 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
             line_text = self.view.substr(line).strip()
 
-            # skip line if 'NOQA' defined
+            # skip line if 'noqa' defined
             if skip_line(line_text):
                 continue
 
             # parse error line to get error code
-            error_code, _ = e[2].split(' ', 1)
+            code, _ = e[2].split(' ', 1)
 
             # check if user has a setting for select only errors to show
-            if select and error_code not in select:
+            if select and filter(lambda err: not code.startswith(err), select):
                 continue
 
             # check if user has a setting for ignore some errors
-            if ignore and error_code in ignore:
+            if ignore and filter(lambda err: code.startswith(err), ignore):
                 continue
 
             # build line error message
