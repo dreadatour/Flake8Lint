@@ -80,14 +80,31 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         """
         errors_to_show = []
 
+        # get select and ignore settings
+        select = settings.get('select') or []
+        ignore = settings.get('ignore') or []
+
         errors_list_filtered = []
         for e in self.errors_list:
             # get error line
             line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
             line_text = self.view.substr(line).strip()
+
             # skip line if 'NOQA' defined
             if skip_line(line_text):
                 continue
+
+            # parse error line to get error code
+            error_code, _ = e[2].split(' ', 1)
+
+            # check if user has a setting for select only errors to show
+            if select and error_code not in select:
+                continue
+
+            # check if user has a setting for ignore some errors
+            if ignore and error_code in ignore:
+                continue
+
             # build line error message
             error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
             if error not in errors_to_show:
@@ -95,6 +112,8 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 errors_to_show.append(
                     [e[2], u'{0}: {1}'.format(e[0], line_text)]
                 )
+
+        # renew errors list with selected and ignored errors
         self.errors_list = errors_list_filtered
 
         # view errors window

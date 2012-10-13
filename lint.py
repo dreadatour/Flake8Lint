@@ -31,9 +31,7 @@ class Pep8Report(pep8.BaseReport):
         """
         code = super(Pep8Report, self).error(line_number, offset, text, check)
         if code:
-            self.errors.append(
-                (self.line_offset + line_number, offset, text)
-            )
+            self.errors.append((self.line_offset + line_number, offset, text))
         return code
 
 
@@ -58,11 +56,7 @@ def lint(filename, settings):
 
     # lint with pep8
     if settings.get('pep8', True):
-        pep8style = pep8.StyleGuide(
-            select=settings.get('select') or [],
-            ignore=settings.get('ignore') or [],
-            reporter=Pep8Report
-        )
+        pep8style = pep8.StyleGuide(reporter=Pep8Report)
         pep8style.input_file(filename)
         warnings.extend(pep8style.options.report.errors)
 
@@ -104,16 +98,6 @@ def lint_external(filename, settings, interpreter, linter):
     if complexity > 0:
         arguments.extend(('--complexity', str(complexity)))
 
-    # set select warnings if needed
-    select = settings.get('select') or []
-    if select:
-        arguments.extend(('--select', ','.join(select)))
-
-    # set ignore warnings if needed
-    ignore = settings.get('ignore') or []
-    if ignore:
-        arguments.extend(('--ignore', ','.join(ignore)))
-
     # last argument is script to check filename
     arguments.append(filename)
 
@@ -126,15 +110,8 @@ def lint_external(filename, settings, interpreter, linter):
     # parse STDOUT for warnings and errors
     for line in proc.stdout:
         warning = line.strip().split(':', 2)
-
-        if len(warning) < 3:
-            continue
-
-        warnings.append((
-            int(warning[0]),
-            int(warning[1]),
-            warning[2]
-        ))
+        if len(warning) == 3:
+            warnings.append((int(warning[0]), int(warning[1]), warning[2]))
 
     # and return them =)
     return warnings
@@ -152,13 +129,8 @@ if __name__ == "__main__":
     parser.add_argument('--pep8', action='store_true',
                         help="run pep8 lint")
     parser.add_argument('--complexity', type=int, help="check complexity")
-    parser.add_argument('--select', help="select errors to lint only")
-    parser.add_argument('--ignore', help="ignore errors to lint")
 
     settings = parser.parse_args().__dict__
-    for param in ('select', 'ignore'):
-        if param in settings and settings[param]:
-            settings[param] = settings[param].split(',')
     filename = settings.pop('filename')
 
     # run lint and print errors
