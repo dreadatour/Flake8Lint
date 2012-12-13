@@ -2,6 +2,12 @@
 	// run flake8 lint on file saving
 	"lint_on_save": true,
 
+	// popup a dialog of detected conditions?
+	"popup": true,
+
+	// highlight detected conditions?
+	"highlight": true,
+
 	// set python interpreter (lint files for python >= 2.7):
 	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
 	// - 'auto' for search default system python interpreter (default value)

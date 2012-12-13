@@ -84,11 +84,15 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         select = settings.get('select') or []
         ignore = settings.get('ignore') or []
 
+        regions = []
+
         errors_list_filtered = []
         for e in self.errors_list:
             # get error line
-            line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
-            line_text = self.view.substr(line).strip()
+            text_point = self.view.text_point(e[0] - 1, 0)
+            line = self.view.full_line(text_point)
+            full_line_text = self.view.substr(line)
+            line_text = full_line_text.strip()
 
             # skip line if 'noqa' defined
             if skip_line(line_text):
@@ -113,12 +117,22 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                     [e[2], u'{0}: {1}'.format(e[0], line_text)]
                 )
 
+            indent = len(full_line_text) - len(full_line_text.lstrip())
+            regions.append(sublime.Region(text_point + indent,
+                text_point + indent + len(line_text)))
+
+        if settings.get('highlight'):
+            # It may not make much sense, but string is the best coloration,
+            # as far as I can tell.
+            self.view.add_regions('flake8-errors', regions, "string")
+
         # renew errors list with selected and ignored errors
         self.errors_list = errors_list_filtered
 
-        # view errors window
-        self.view.window().show_quick_panel(errors_to_show,
-                                            self.error_selected)
+        if settings.get('popup'):
+            # view errors window
+            self.view.window().show_quick_panel(errors_to_show,
+                                                self.error_selected)
 
     def error_selected(self, item_selected):
         """
