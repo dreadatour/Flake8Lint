@@ -21,6 +21,9 @@
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 
+	// set desired max line length
+	"pep8_max_line_length": 79,
+
 	// select errors and warnings (e.g. ["E", "W6"])
 	"select": [],
 	//skip errors and warnings (e.g. ["E303", E4", "W"])

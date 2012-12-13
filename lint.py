@@ -56,7 +56,8 @@ def lint(filename, settings):
 
     # lint with pep8
     if settings.get('pep8', True):
-        pep8style = pep8.StyleGuide(reporter=Pep8Report)
+        pep8style = pep8.StyleGuide(reporter=Pep8Report,
+                max_line_length = settings.get('pep8_max_line_length'))
         pep8style.input_file(filename)
         warnings.extend(pep8style.options.report.errors)
 
@@ -92,6 +93,9 @@ def lint_external(filename, settings, interpreter, linter):
     # do we need to run pep8 lint
     if settings.get('pep8', True):
         arguments.append('--pep8')
+        max_line_length = settings.get('pep8_max_line_length')
+        arguments.append('--pep8-max-line-length')
+        arguments.append(str(max_line_length))
 
     # do we need to run complexity check
     complexity = settings.get('complexity', -1)
@@ -129,6 +133,8 @@ if __name__ == "__main__":
     parser.add_argument('--pep8', action='store_true',
                         help="run pep8 lint")
     parser.add_argument('--complexity', type=int, help="check complexity")
+    parser.add_argument('--pep8-max-line-length', type=int,
+                        help="pep8 max line length")
 
     settings = parser.parse_args().__dict__
     filename = settings.pop('filename')
