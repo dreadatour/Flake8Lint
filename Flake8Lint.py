@@ -9,6 +9,7 @@ from lint import lint, lint_external
 
 
 settings = sublime.load_settings("Flake8Lint.sublime-settings")
+FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
@@ -52,8 +53,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
             # TODO: correct linter path handle
             # build linter path for Packages Manager installation
-            linter = os.path.join(
-                sublime.packages_path(), 'Python Flake8 Lint', 'lint.py')
+            linter = os.path.join(FLAKE_DIR, 'lint.py')
 
             # build linter path for installation from git
             if not os.path.exists(linter):
