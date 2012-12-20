@@ -10,6 +10,7 @@ from lint import lint, lint_external
 
 settings = sublime.load_settings("Flake8Lint.sublime-settings")
 FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
+viewToRegionToErrors = {}
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
@@ -85,6 +86,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         ignore = settings.get('ignore') or []
 
         regions = []
+        viewStorage = viewToRegionToErrors[self.view.id()] = {}
 
         errors_list_filtered = []
         for e in self.errors_list:
@@ -113,18 +115,19 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
             if error not in errors_to_show:
                 errors_list_filtered.append(e)
-                errors_to_show.append(
-                    [e[2], u'{0}: {1}'.format(e[0], line_text)]
-                )
+                errors_to_show.append(error)
 
             indent = len(full_line_text) - len(full_line_text.lstrip())
-            regions.append(sublime.Region(text_point + indent,
-                text_point + indent + len(line_text)))
+            region = sublime.Region(text_point + indent, 
+                    text_point + indent + len(line_text))
+            viewStorage[region.a] = { 'error': error[0] }
+            regions.append(region)
 
         if settings.get('highlight'):
             # It may not make much sense, but string is the best coloration,
             # as far as I can tell.
-            self.view.add_regions('flake8-errors', regions, "string")
+            self.view.add_regions('flake8-errors', regions, "string", "",
+                    sublime.DRAW_EMPTY)
 
         # renew errors list with selected and ignored errors
         self.errors_list = errors_list_filtered
@@ -164,3 +167,21 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         if settings.get('lint_on_save', True):
             view.run_command('flake8_lint')
+
+
+    def on_selection_modified(self, view):
+        regs = view.get_regions('flake8-errors')
+        selLine = view.line(view.sel()[0])
+        viewStorage = viewToRegionToErrors.get(view.id())
+        if viewStorage is None:
+            return
+        tip = []
+        for reg in regs:
+            if reg.intersects(selLine):
+                tip.append(viewStorage.get(reg.a, {}).get('error', 
+                        '(Unrecognized)'))
+
+        if tip:
+            view.set_status('flake8-tip', ' / '.join(tip))
+        else:
+            view.erase_status('flake8-tip')
