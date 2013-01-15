@@ -38,6 +38,12 @@ Default Flake8Lint config: "Preferences" -> "Package Settings" -> "Flake8Lint" -
 		// run flake8 lint on file saving
 		"lint_on_save": true,
 
+		// popup a dialog of detected conditions?
+		"popup": true,
+
+		// highlight detected conditions?
+		"highlight": true,
+
 		// set python interpreter (lint files for python >= 2.7):
 		// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
 		// - 'auto' for search default system python interpreter (default value)
@@ -50,6 +56,9 @@ Default Flake8Lint config: "Preferences" -> "Package Settings" -> "Flake8Lint" -
 		"pep8": true,
 		// turn off complexity check (set number > 0 to check complexity level)
 		"complexity": -1,
+
+		// set desired max line length
+		"pep8_max_line_length": 79,
 
 		// select errors and warnings (e.g. ["E", "W6"])
 		"select": [],
