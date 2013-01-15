@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+"""
+Flake8Lint: Sublime Text 2 plugin.
+Check Python files with flake8 (PEP8, pyflake and mccabe)
+"""
 import os
 
 import sublime
@@ -10,7 +14,34 @@ from lint import lint, lint_external
 
 settings = sublime.load_settings("Flake8Lint.sublime-settings")
 FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
-viewToRegionToErrors = {}
+ERRORS_IN_VIEWS = {}
+
+
+def update_statusbar(view):
+    """
+    Update status bar with error.
+    """
+    # get view errors (exit if no errors found)
+    view_errors = ERRORS_IN_VIEWS.get(view.id())
+    if view_errors is None:
+        return
+
+    # get view selection (exit if no selection)
+    view_selection = view.sel()
+    if not view_selection:
+        return
+
+    # get current line (line under cursor)
+    current_line = view.rowcol(view_selection[0].end())[0]
+
+    if current_line in view_errors:
+        # there is an error on current line
+        errors = view_errors[current_line]
+        view.set_status('flake8-tip',
+                        'Flake8 lint errors: %s' % ' / '.join(errors))
+    else:
+        # no errors - clear statusbar
+        view.erase_status('flake8-tip')
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
@@ -52,7 +83,6 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                     "python interpreter '%s' is not found" % interpreter
                 )
 
-            # TODO: correct linter path handle
             # build linter path for Packages Manager installation
             linter = os.path.join(FLAKE_DIR, 'lint.py')
 
@@ -71,6 +101,14 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             self.errors_list = lint_external(filename, settings,
                                              interpreter, linter)
 
+        # we need to always clear regions. two situations here:
+        # - we need to clear regions with fixed previous errors
+        # - is user will turn off 'highlight' in settings and then run lint
+        self.view.erase_regions('flake8-errors')
+
+        # we need to always erase status too. same situations.
+        self.view.erase_status('flake8-tip')
+
         # show errors
         if self.errors_list:
             self.show_errors()
@@ -84,14 +122,19 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         # get select and ignore settings
         select = settings.get('select') or []
         ignore = settings.get('ignore') or []
+        is_highlight = settings.get('highlight', False)
+        is_popup = settings.get('popup', True)
 
         regions = []
-        viewStorage = viewToRegionToErrors[self.view.id()] = {}
-
+        view_errors = {}
         errors_list_filtered = []
+
         for e in self.errors_list:
+            current_line = e[0] - 1
+            error_text = e[2]
+
             # get error line
-            text_point = self.view.text_point(e[0] - 1, 0)
+            text_point = self.view.text_point(current_line, 0)
             line = self.view.full_line(text_point)
             full_line_text = self.view.substr(line)
             line_text = full_line_text.strip()
@@ -101,7 +144,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 continue
 
             # parse error line to get error code
-            code, _ = e[2].split(' ', 1)
+            code, _ = error_text.split(' ', 1)
 
             # check if user has a setting for select only errors to show
             if select and filter(lambda err: not code.startswith(err), select):
@@ -111,28 +154,51 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             if ignore and filter(lambda err: code.startswith(err), ignore):
                 continue
 
+            # build error text
+            error = [error_text, u'{0}: {1}'.format(current_line + 1,
+                                                    line_text)]
+            # skip if this error is already found (with pep8 or flake8)
+            if error in errors_to_show:
+                continue
+            errors_to_show.append(error)
+
             # build line error message
-            error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
-            if error not in errors_to_show:
+            if is_popup:
                 errors_list_filtered.append(e)
-                errors_to_show.append(error)
 
-            indent = len(full_line_text) - len(full_line_text.lstrip())
-            region = sublime.Region(text_point + indent, 
-                    text_point + indent + len(line_text))
-            viewStorage[region.a] = { 'error': error[0] }
-            regions.append(region)
+            # prepare errors regions
+            if is_highlight:
+                # prepare line
+                line_text = full_line_text.rstrip('\r\n')
+                line_length = len(line_text)
 
-        if settings.get('highlight'):
-            # It may not make much sense, but string is the best coloration,
-            # as far as I can tell.
-            self.view.add_regions('flake8-errors', regions, "string", "",
-                    sublime.DRAW_EMPTY)
+                # calculate error highlight start and end positions
+                start = text_point + line_length - len(line_text.lstrip())
+                end = text_point + line_length
+
+                # small tricks
+                if code == 'E501':
+                    # too long lines: highlight only the rest of line
+                    start = text_point + e[1]
+                # TODO: add another tricks like 'E303 too many blank lines'
+
+                regions.append(sublime.Region(start, end))
+
+            # save errors for each line in view to special dict
+            view_errors.setdefault(current_line, []).append(error_text)
 
         # renew errors list with selected and ignored errors
         self.errors_list = errors_list_filtered
+        # save errors dict
+        ERRORS_IN_VIEWS[self.view.id()] = view_errors
 
-        if settings.get('popup'):
+        # highlight error regions if defined
+        if is_highlight:
+            self.view.add_regions('flake8-errors', regions,
+                                  'invalid.deprecated', '',
+                                  sublime.DRAW_EMPTY)
+
+        if is_popup:
             # view errors window
             self.view.window().show_quick_panel(errors_to_show,
                                                 self.error_selected)
@@ -155,6 +221,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         # go to error
         selection.add(sublime.Region(region_begin, region_begin))
         self.view.show_at_center(region_begin)
+        update_statusbar(self.view)
 
 
 class Flake8LintBackground(sublime_plugin.EventListener):
@@ -168,20 +235,8 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         if settings.get('lint_on_save', True):
             view.run_command('flake8_lint')
 
-
     def on_selection_modified(self, view):
-        regs = view.get_regions('flake8-errors')
-        selLine = view.line(view.sel()[0])
-        viewStorage = viewToRegionToErrors.get(view.id())
-        if viewStorage is None:
-            return
-        tip = []
-        for reg in regs:
-            if reg.intersects(selLine):
-                tip.append(viewStorage.get(reg.a, {}).get('error', 
-                        '(Unrecognized)'))
-
-        if tip:
-            view.set_status('flake8-tip', ' / '.join(tip))
-        else:
-            view.erase_status('flake8-tip')
+        """
+        Selection was modified: update status bar.
+        """
+        update_statusbar(view)
