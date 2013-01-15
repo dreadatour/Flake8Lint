@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Flake8 lint worker.
+"""
 import os
 
 # We will use Stéphane Klein fork of flake8 until it not merged into flake8.
@@ -56,8 +59,11 @@ def lint(filename, settings):
 
     # lint with pep8
     if settings.get('pep8', True):
-        pep8style = pep8.StyleGuide(reporter=Pep8Report,
-                max_line_length = settings.get('pep8_max_line_length'))
+        pep8style = pep8.StyleGuide(
+            reporter=Pep8Report,
+            ignore=settings.get('ignore', []),
+            max_line_length=settings.get('pep8_max_line_length')
+        )
         pep8style.input_file(filename)
         warnings.extend(pep8style.options.report.errors)
 
