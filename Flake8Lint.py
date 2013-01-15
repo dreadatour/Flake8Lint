@@ -9,6 +9,8 @@ from lint import lint, lint_external
 
 
 settings = sublime.load_settings("Flake8Lint.sublime-settings")
+FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
+viewToRegionToErrors = {}
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
@@ -52,8 +54,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
             # TODO: correct linter path handle
             # build linter path for Packages Manager installation
-            linter = os.path.join(
-                sublime.packages_path(), 'Python Flake8 Lint', 'lint.py')
+            linter = os.path.join(FLAKE_DIR, 'lint.py')
 
             # build linter path for installation from git
             if not os.path.exists(linter):
@@ -84,11 +85,16 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         select = settings.get('select') or []
         ignore = settings.get('ignore') or []
 
+        regions = []
+        viewStorage = viewToRegionToErrors[self.view.id()] = {}
+
         errors_list_filtered = []
         for e in self.errors_list:
             # get error line
-            line = self.view.full_line(self.view.text_point(e[0] - 1, 0))
-            line_text = self.view.substr(line).strip()
+            text_point = self.view.text_point(e[0] - 1, 0)
+            line = self.view.full_line(text_point)
+            full_line_text = self.view.substr(line)
+            line_text = full_line_text.strip()
 
             # skip line if 'noqa' defined
             if skip_line(line_text):
@@ -109,16 +115,27 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             error = [e[2], u'{0}: {1}'.format(e[0], line_text)]
             if error not in errors_to_show:
                 errors_list_filtered.append(e)
-                errors_to_show.append(
-                    [e[2], u'{0}: {1}'.format(e[0], line_text)]
-                )
+                errors_to_show.append(error)
+
+            indent = len(full_line_text) - len(full_line_text.lstrip())
+            region = sublime.Region(text_point + indent, 
+                    text_point + indent + len(line_text))
+            viewStorage[region.a] = { 'error': error[0] }
+            regions.append(region)
+
+        if settings.get('highlight'):
+            # It may not make much sense, but string is the best coloration,
+            # as far as I can tell.
+            self.view.add_regions('flake8-errors', regions, "string", "",
+                    sublime.DRAW_EMPTY)
 
         # renew errors list with selected and ignored errors
         self.errors_list = errors_list_filtered
 
-        # view errors window
-        self.view.window().show_quick_panel(errors_to_show,
-                                            self.error_selected)
+        if settings.get('popup'):
+            # view errors window
+            self.view.window().show_quick_panel(errors_to_show,
+                                                self.error_selected)
 
     def error_selected(self, item_selected):
         """
@@ -150,3 +167,21 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         if settings.get('lint_on_save', True):
             view.run_command('flake8_lint')
+
+
+    def on_selection_modified(self, view):
+        regs = view.get_regions('flake8-errors')
+        selLine = view.line(view.sel()[0])
+        viewStorage = viewToRegionToErrors.get(view.id())
+        if viewStorage is None:
+            return
+        tip = []
+        for reg in regs:
+            if reg.intersects(selLine):
+                tip.append(viewStorage.get(reg.a, {}).get('error', 
+                        '(Unrecognized)'))
+
+        if tip:
+            view.set_status('flake8-tip', ' / '.join(tip))
+        else:
+            view.erase_status('flake8-tip')
