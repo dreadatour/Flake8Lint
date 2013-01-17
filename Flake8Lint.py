@@ -196,7 +196,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         if is_highlight:
             self.view.add_regions('flake8-errors', regions,
                                   'invalid.deprecated', '',
-                                  sublime.DRAW_EMPTY)
+                                  sublime.DRAW_OUTLINED)
 
         if is_popup:
             # view errors window
