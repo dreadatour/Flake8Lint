@@ -61,7 +61,7 @@ def lint(filename, settings):
     if settings.get('pep8', True):
         pep8style = pep8.StyleGuide(
             reporter=Pep8Report,
-            # ignore=settings.get('ignore', []),
+            ignore=settings.get('ignore', []),
             max_line_length=settings.get('pep8_max_line_length')
         )
         pep8style.input_file(filename)

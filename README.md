@@ -5,6 +5,7 @@ Flake8Lint is a Sublime Text 2 plugin for check Python files against some of the
 
 Based on **[bitbucket.org/tarek/flake8](https://bitbucket.org/tarek/flake8)**.
 
+
 Install
 -------
 
@@ -28,6 +29,7 @@ The "Packages" directory is located at:
 * Windows:
 
         %APPDATA%/Sublime Text 2/Packages/
+
 
 Config
 ------
@@ -67,6 +69,17 @@ Default Flake8Lint config: "Preferences" -> "Package Settings" -> "Flake8Lint" -
 	}
 
 To change default settings, go to "Preferences" -> "Package Settings" -> "Flake8Lint" -> "Settings - User" and paste default config to opened file.
+
+
+Note
+----
+
+Pep8 ignores "E24" errors by default. This plugin will not ignore them.
+
+If you're not agree with this plugin, please, add next string in your config:
+
+    "ignore": ["E24"]
+
 
 Features / Usage
 ----------------
