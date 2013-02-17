@@ -79,17 +79,11 @@ Lint tools
 
 **[Flake8](http://pypi.python.org/pypi/flake8)** (used in "Python Flake8 Lint") is a wrapper around these tools:
 
-* **[pep8](http://pypi.python.org/pypi/pep8)**:
+* **[pep8](http://pypi.python.org/pypi/pep8)** is a tool to check your Python code against some of the style conventions in [PEP8](http://www.python.org/dev/peps/pep-0008/).
 
-		is a tool to check your Python code against some of the style conventions in [PEP8](http://www.python.org/dev/peps/pep-0008/).
+* **[PyFlakes](https://launchpad.net/pyflakes)** checks only for logical errors in programs; it does not perform any check on style.
 
-* **[PyFlakes](https://launchpad.net/pyflakes)**:
-
-		checks only for logical errors in programs; it does not perform any check on style.
-
-* **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)**:
-
-		is a code complexity checker. It is quite useful to detect over-complex code. According to McCabe, anything that goes beyond 10 is too complex. See [Cyclomatic_complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity).
+* **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** is a code complexity checker. It is quite useful to detect over-complex code. According to McCabe, anything that goes beyond 10 is too complex. See [Cyclomatic_complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity).
 
 
 Note
