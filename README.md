@@ -80,7 +80,10 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// select errors and warnings (e.g. ["E", "W6"])
 		"select": [],
 		//skip errors and warnings (e.g. ["E303", E4", "W"])
-		"ignore": []
+		"ignore": [],
+
+		// files to ignore, for example: ["*.mako", "test*.py"]
+		"ignore_files": []
 	}
 
 To change default settings, go to "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - User" and paste default config to the opened file and make your changes.
