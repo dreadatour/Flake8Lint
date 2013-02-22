@@ -99,7 +99,10 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         else:
             # else - check interpreter
             if interpreter == 'auto':
-                interpreter = 'python'
+                if os.name == 'nt':
+                    interpreter = 'pythonw'
+                else:
+                    interpreter = 'python'
             elif not os.path.exists(interpreter):
                 sublime.error_message(
                     "Python Flake8 Lint error:\n"
