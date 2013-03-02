@@ -4,6 +4,7 @@ Flake8Lint: Sublime Text 2 plugin.
 Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 import os
+from fnmatch import fnmatch
 
 import sublime
 import sublime_plugin
@@ -63,6 +64,28 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         if not self.view.match_selector(0, 'source.python'):
             return
 
+        # we need to always clear regions. three situations here:
+        # - we need to clear regions with fixed previous errors
+        # - is user will turn off 'highlight' in settings and then run lint
+        # - user adds file with errors to 'ignore_files' list
+        self.view.erase_regions('flake8-errors')
+
+        # we need to always erase status too. same situations.
+        self.view.erase_status('flake8-tip')
+
+        # skip files by mask
+        ignore_files = settings.get('ignore_files')
+        if ignore_files:
+            basename = os.path.basename(filename)
+            try:
+                if any(fnmatch(basename, mask) for mask in ignore_files):
+                    return
+            except (TypeError, ValueError):
+                sublime.error_message(
+                    "Python Flake8 Lint error:\n"
+                    "'ignore_files' option is not a list of file masks"
+                )
+
         # save file if dirty
         if self.view.is_dirty():
             self.view.run_command('save')
@@ -76,7 +99,10 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         else:
             # else - check interpreter
             if interpreter == 'auto':
-                interpreter = 'python'
+                if os.name == 'nt':
+                    interpreter = 'pythonw'
+                else:
+                    interpreter = 'python'
             elif not os.path.exists(interpreter):
                 sublime.error_message(
                     "Python Flake8 Lint error:\n"
@@ -100,14 +126,6 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             # and lint file in subprocess
             self.errors_list = lint_external(filename, settings,
                                              interpreter, linter)
-
-        # we need to always clear regions. two situations here:
-        # - we need to clear regions with fixed previous errors
-        # - is user will turn off 'highlight' in settings and then run lint
-        self.view.erase_regions('flake8-errors')
-
-        # we need to always erase status too. same situations.
-        self.view.erase_status('flake8-tip')
 
         # show errors
         if self.errors_list:

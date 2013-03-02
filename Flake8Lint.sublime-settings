@@ -26,6 +26,9 @@
 
 	// select errors and warnings (e.g. ["E", "W6"])
 	"select": [],
-	//skip errors and warnings (e.g. ["E303", E4", "W"])
-	"ignore": []
+	// skip errors and warnings (e.g. ["E303", E4", "W"])
+	"ignore": [],
+
+	// files to ignore, for example: ["*.mako", "test*.py"]
+	"ignore_files": []
 }
