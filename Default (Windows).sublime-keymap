@@ -1,3 +1,3 @@
 [
-	{ "keys": ["ctrl+alt+8"], "command": "flake8_lint" }
+	{ "keys": ["ctrl+alt+shift+8"], "command": "flake8_lint" }
 ]
