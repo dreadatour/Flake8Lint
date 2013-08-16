@@ -169,11 +169,11 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             code, _ = error_text.split(' ', 1)
 
             # check if user has a setting for select only errors to show
-            if select and filter(lambda err: not code.startswith(err), select):
+            if select and [c for c in select if code.startswith(c)]:
                 continue
 
             # check if user has a setting for ignore some errors
-            if ignore and filter(lambda err: code.startswith(err), ignore):
+            if ignore and [c for c in ignore if code.startswith(c)]:
                 continue
 
             # build error text

@@ -26,7 +26,7 @@ mccabe.get_code_complexity = mccabe_get_code_complexity
 
 class Pep8Report(pep8.BaseReport):
     """
-    Collect all results of the checks.
+    Collect all check results.
     """
     def __init__(self, options):
         """
@@ -76,7 +76,11 @@ def lint(filename, settings):
         warnings.extend(pep8style.options.report.errors)
 
     # check complexity
-    complexity = settings.get('complexity', -1)
+    try:
+        complexity = int(settings.get('complexity', -1))
+    except (TypeError, ValueError):
+        complexity = -1
+
     if complexity > -1:
         warnings.extend(mccabe.get_module_complexity(filename, complexity))
 
@@ -122,7 +126,8 @@ def lint_external(filename, settings, interpreter, linter):
     warnings = []
 
     # run subprocess
-    proc = subprocess.Popen(arguments, stdout=subprocess.PIPE)
+    proc = subprocess.Popen(arguments, stdout=subprocess.PIPE,
+                            stderr=subprocess.STDOUT)
 
     # parse STDOUT for warnings and errors
     for line in proc.stdout:
@@ -154,5 +159,8 @@ if __name__ == "__main__":
 
     # run lint and print errors
     for warning in lint(filename, settings):
-        print("%d:%d:%s" % warning)
+        try:
+            print("%d:%d:%s" % warning)
+        except Exception:
+            print(warning)
         sys.stdout.flush()
