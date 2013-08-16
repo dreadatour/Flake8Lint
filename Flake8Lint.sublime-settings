@@ -12,6 +12,8 @@
 	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
 	// - 'auto' for search default system python interpreter (default value)
 	// - absolute path to python interpreter for define another one
+	//   use platform specific notation, i.e. "C:\\Anaconda\\envs\\py33\\python.exe"
+	//   for Windows or then /home/whatever/pythondist/python for Unix
 	"python_interpreter": "auto",
 
 	// turn on pyflakes error lint
