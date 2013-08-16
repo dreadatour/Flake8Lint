@@ -4,6 +4,7 @@ Flake8 lint worker.
 """
 from __future__ import print_function
 import os
+import sys
 
 # We will use Stéphane Klein fork of flake8 until it not merged into flake8.
 # This version includes last version of pep8.
@@ -154,3 +155,4 @@ if __name__ == "__main__":
     # run lint and print errors
     for warning in lint(filename, settings):
         print("%d:%d:%s" % warning)
+        sys.stdout.flush()
