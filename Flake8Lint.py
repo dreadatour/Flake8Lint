@@ -4,6 +4,7 @@ Flake8Lint: Sublime Text 2 plugin.
 Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 import os
+import sys
 from fnmatch import fnmatch
 
 import sublime
@@ -17,9 +18,20 @@ except ValueError:
     from lint import lint, lint_external  # noqa
 
 
-settings = sublime.load_settings("Flake8Lint.sublime-settings")
-FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
+settings = None
 ERRORS_IN_VIEWS = {}
+FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+
+def plugin_loaded():
+    global settings
+    settings = sublime.load_settings("Flake8Lint.sublime-settings")
+
+
+# Backwards compatibility with Sublime 2
+# sublime.version isn't available at module import time in Sublime 3
+if sys.version_info[0] == 2:
+    plugin_loaded()
 
 
 def update_statusbar(view):
