@@ -112,8 +112,7 @@ def lint_external(filename, settings, interpreter, linter):
 
     # do we need to run complexity check
     complexity = settings.get('complexity', -1)
-    if complexity > 0:
-        arguments.extend(('--complexity', str(complexity)))
+    arguments.extend(('--complexity', str(complexity)))
 
     # last argument is script to check filename
     arguments.append(filename)
