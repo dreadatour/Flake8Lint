@@ -2,15 +2,20 @@
 import _ast
 import sys
 
-from flake8_harobed.pyflakes import Checker
-from flake8_harobed.util import skip_warning
-
 try:
     from compiler import parse   # noqa
     iter_child_nodes = None  # noqa
 except ImportError:
     from ast import parse, iter_child_nodes  # noqa
-from flake8_harobed.mccabe import PathGraphingAstVisitor, WARNING_CODE
+
+try:
+    from .flake8_harobed.pyflakes import Checker
+    from .flake8_harobed.util import skip_warning
+    from .flake8_harobed.mccabe import PathGraphingAstVisitor, WARNING_CODE
+except ValueError:
+    from flake8_harobed.pyflakes import Checker  # noqa
+    from flake8_harobed.util import skip_warning  # noqa
+    from flake8_harobed.mccabe import PathGraphingAstVisitor, WARNING_CODE  # noqa
 
 
 def pyflakes_check(codeString, filename='(code)'):

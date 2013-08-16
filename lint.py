@@ -2,16 +2,23 @@
 """
 Flake8 lint worker.
 """
+from __future__ import print_function
 import os
 
 # We will use Stéphane Klein fork of flake8 until it not merged into flake8.
 # This version includes last version of pep8.
 # See: https://bitbucket.org/tarek/flake8/issue/23/use-pep8-configuration-file
-from flake8_harobed import pyflakes, pep8, mccabe, util
+try:
+    from .flake8_harobed import pyflakes, pep8, mccabe, util
+except ValueError:
+    from flake8_harobed import pyflakes, pep8, mccabe, util  # noqa
 
 # Monkey-patching is a big evil (don't do this),
 # but hardcode is a much more bigger evil. Hate hardcore!
-from monkey_patching import pyflakes_check, mccabe_get_code_complexity
+try:
+    from .monkey_patching import pyflakes_check, mccabe_get_code_complexity
+except ValueError:
+    from monkey_patching import pyflakes_check, mccabe_get_code_complexity  # noqa
 pyflakes.check = pyflakes_check
 mccabe.get_code_complexity = mccabe_get_code_complexity
 
@@ -119,7 +126,7 @@ def lint_external(filename, settings, interpreter, linter):
 
     # parse STDOUT for warnings and errors
     for line in proc.stdout:
-        warning = line.strip().split(':', 2)
+        warning = line.decode('utf-8').strip().split(':', 2)
         if len(warning) == 3:
             warnings.append((int(warning[0]), int(warning[1]), warning[2]))
 
@@ -147,4 +154,4 @@ if __name__ == "__main__":
 
     # run lint and print errors
     for warning in lint(filename, settings):
-        print "%d:%d:%s" % warning
+        print("%d:%d:%s" % warning)

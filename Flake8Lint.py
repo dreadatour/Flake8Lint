@@ -9,8 +9,12 @@ from fnmatch import fnmatch
 import sublime
 import sublime_plugin
 
-from flake8_harobed.util import skip_line
-from lint import lint, lint_external
+try:
+    from .flake8_harobed.util import skip_line
+    from .lint import lint, lint_external
+except ValueError:
+    from flake8_harobed.util import skip_line  # noqa
+    from lint import lint, lint_external  # noqa
 
 
 settings = sublime.load_settings("Flake8Lint.sublime-settings")
