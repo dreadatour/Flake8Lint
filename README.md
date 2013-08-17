@@ -55,7 +55,7 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// run flake8 lint on file saving
 		"lint_on_save": true,
 
-		//run flake8 lint on file loading
+		// run flake8 lint on file loading
 		"lint_on_load": false,
 
 		// popup a dialog of detected conditions?
@@ -95,7 +95,7 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 
 		// select errors and warnings (e.g. ["E", "W6"])
 		"select": [],
-		//skip errors and warnings (e.g. ["E303", E4", "W"])
+		// skip errors and warnings (e.g. ["E303", E4", "W"])
 		"ignore": [],
 
 		// files to ignore, for example: ["*.mako", "test*.py"]
