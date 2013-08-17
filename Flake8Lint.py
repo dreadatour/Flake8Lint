@@ -79,12 +79,12 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         """
         Run flake8 lint.
         """
-        # current file name
-        filename = os.path.abspath(self.view.file_name())
-
         # check if active view contains file
+        filename = self.view.file_name()
         if not filename:
             return
+
+        filename = os.path.abspath(filename)
 
         # check only Python files
         if not self.view.match_selector(0, 'source.python'):
@@ -247,8 +247,8 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         if is_popup:
             # view errors window
-            self.view.window().show_quick_panel(errors_to_show,
-                                                self.error_selected)
+            window = self.view.window()
+            window.show_quick_panel(errors_to_show, self.error_selected)
 
     def error_selected(self, item_selected):
         """
@@ -275,16 +275,33 @@ class Flake8LintBackground(sublime_plugin.EventListener):
     """
     Listen to Siblime Text 2 events.
     """
+    def _lintOnLoad(self, view, retry=False):
+        """
+        Some code to lint file on load.
+        """
+        if not retry:  # first run - wait a little bit
+            sublime.set_timeout(lambda: self._lintOnLoad(view, True), 100)
+            return
+
+        if view.is_loading():  # view is still running - wait again
+            sublime.set_timeout(lambda: self._lintOnLoad(view, True), 100)
+            return
+
+        elif view.window().active_view().id() != view.id():
+            return  # not active anymore, don't lint it!
+
+        view.run_command("flake8_lint")
+
     def on_load(self, view):
         """
-        Do lint on file open.
+        Do lint on file load.
         """
         if settings.get('lint_on_load', False):
-            view.run_command('flake8_lint')
+            self._lintOnLoad(view)
 
     def on_post_save(self, view):
         """
-        Do lint on file save if not denied in settings.
+        Do lint on file save.
         """
         if settings.get('lint_on_save', True):
             view.run_command('flake8_lint')
