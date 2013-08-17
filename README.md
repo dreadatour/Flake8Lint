@@ -64,6 +64,11 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// highlight detected conditions?
 		"highlight": true,
 
+		// show a mark in the gutter on all highlighted lines:
+		// - 'dot', 'circle' or 'bookmark' to show marks
+		// - '' (empty string) to do not show marks
+		"gutter_marks": "",
+
 		// report successfull (passed) lint
 		"report_on_success": false,
 

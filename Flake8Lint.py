@@ -240,8 +240,9 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         # highlight error regions if defined
         if is_highlight:
+            mark = settings.get('gutter_marks', '')
             self.view.add_regions('flake8-errors', regions,
-                                  'invalid.deprecated', '',
+                                  'invalid.deprecated', mark,
                                   sublime.DRAW_OUTLINED)
 
         if is_popup:
