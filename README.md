@@ -61,6 +61,9 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// highlight detected conditions?
 		"highlight": true,
 
+		// report successfull (passed) lint
+		"report_on_success": false,
+
 		// set python interpreter (lint files for python >= 2.7):
 		// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
 		// - 'auto' for search default system python interpreter (default value)

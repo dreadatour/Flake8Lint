@@ -156,6 +156,8 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         # show errors
         if self.errors_list:
             self.show_errors()
+        elif settings.get('report_on_success', False):
+            sublime.message_dialog('Flake8 Lint: SUCCESS')
 
     def show_errors(self):
         """
