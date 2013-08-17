@@ -22,6 +22,10 @@ FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 def plugin_loaded():
+    """
+    Callback for 'plugin was loaded' event.
+    Load settings.
+    """
     global settings
     settings = sublime.load_settings("Flake8Lint.sublime-settings")
 

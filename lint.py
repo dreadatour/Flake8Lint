@@ -64,16 +64,26 @@ class Pep8Report(pep8.BaseReport):
 
 class FlakesReporter(object):
     """
-    Formats the results of pyflakes to the linter
+    Formats the results of pyflakes to the linter.
+    Example at 'pyflakes.reporter.Reporter' class.
     """
     def __init__(self):
+        """
+        Construct a Reporter.
+        """
         # errors "collection"
         self.errors = []
 
     def unexpectedError(self, filename, msg):
+        """
+        An unexpected error occurred trying to process filename.
+        """
         self.errors.append((0, 0, msg))
 
     def syntaxError(self, filename, msg, lineno, offset, text):
+        """
+        There was a syntax errror in filename.
+        """
         line = text.splitlines()[-1]
         if offset is not None:
             offset = offset - (len(text) - len(line))
@@ -82,6 +92,9 @@ class FlakesReporter(object):
             self.errors.append(lineno, 0, msg)
 
     def flake(self, msg):
+        """
+        Pyflakes found something wrong with the code.
+        """
         # unused import has no col attr, seems buggy... this fixes it
         col = getattr(msg, 'col', 0)
         self.errors.append((msg.lineno, col, msg.message % msg.message_args))

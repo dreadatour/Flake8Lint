@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+"""
+Flake8 linters monkey-patching.
+"""
 try:
     import ast
 except ImportError:   # Python 2.5
