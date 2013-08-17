@@ -6,22 +6,38 @@ from __future__ import print_function
 import os
 import sys
 
-# We will use Stéphane Klein fork of flake8 until it not merged into flake8.
-# This version includes last version of pep8.
-# See: https://bitbucket.org/tarek/flake8/issue/23/use-pep8-configuration-file
-try:
-    from .flake8_harobed import pyflakes, pep8, mccabe, util
-except ValueError:
-    from flake8_harobed import pyflakes, pep8, mccabe, util  # noqa
+# Add 'contrib' to sys.path to simulate installation of package 'flake8'
+# and it's dependencies: 'pyflake', 'pep8' and 'mccabe'
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'contrib'))
+
+import pyflakes.api
+import mccabe
+import pep8
+from flake8.engine import _flake8_noqa
 
 # Monkey-patching is a big evil (don't do this),
 # but hardcode is a much more bigger evil. Hate hardcore!
 try:
-    from .monkey_patching import pyflakes_check, mccabe_get_code_complexity
+    from .monkey_patching import get_code_complexity
 except ValueError:
-    from monkey_patching import pyflakes_check, mccabe_get_code_complexity  # noqa
-pyflakes.check = pyflakes_check
-mccabe.get_code_complexity = mccabe_get_code_complexity
+    from monkey_patching import get_code_complexity
+mccabe.get_code_complexity = get_code_complexity
+
+from flake8._pyflakes import patch_pyflakes
+patch_pyflakes()
+
+
+def skip_file(path):
+    """
+    Returns True if line with special commit is found in path:
+    # flake8 : noqa
+    """
+    f = open(path)
+    try:
+        content = f.read()
+    finally:
+        f.close()
+    return _flake8_noqa(content) is not None
 
 
 class Pep8Report(pep8.BaseReport):
@@ -46,6 +62,31 @@ class Pep8Report(pep8.BaseReport):
         return code
 
 
+class FlakesReporter(object):
+    """
+    Formats the results of pyflakes to the linter
+    """
+    def __init__(self):
+        # errors "collection"
+        self.errors = []
+
+    def unexpectedError(self, filename, msg):
+        self.errors.append((0, 0, msg))
+
+    def syntaxError(self, filename, msg, lineno, offset, text):
+        line = text.splitlines()[-1]
+        if offset is not None:
+            offset = offset - (len(text) - len(line))
+            self.errors.append((lineno, offset, msg))
+        else:
+            self.errors.append(lineno, 0, msg)
+
+    def flake(self, msg):
+        # unused import has no col attr, seems buggy... this fixes it
+        col = getattr(msg, 'col', 0)
+        self.errors.append((msg.lineno, col, msg.message % msg.message_args))
+
+
 def lint(filename, settings):
     """
     Run flake8 lint with internal interpreter.
@@ -55,7 +96,7 @@ def lint(filename, settings):
         return
 
     # skip file check if 'noqa' for whole file is set
-    if util.skip_file(filename):
+    if skip_file(filename):
         return
 
     # place for warnings =)
@@ -63,7 +104,9 @@ def lint(filename, settings):
 
     # lint with pyflakes
     if settings.get('pyflakes', True):
-        warnings.extend(pyflakes.checkPath(filename))
+        flakes_reporter = FlakesReporter()
+        pyflakes.api.checkPath(filename, flakes_reporter)
+        warnings.extend(flakes_reporter.errors)
 
     # lint with pep8
     if settings.get('pep8', True):
@@ -98,7 +141,7 @@ def lint_external(filename, settings, interpreter, linter):
         return
 
     # skip file check if 'noqa' for whole file is set
-    if util.skip_file(filename):
+    if skip_file(filename):
         return
 
     # first argument is interpreter

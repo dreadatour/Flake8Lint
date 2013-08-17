@@ -1,70 +1,25 @@
 # -*- coding: utf-8 -*-
-import _ast
-import sys
-
 try:
-    from compiler import parse   # noqa
-    iter_child_nodes = None  # noqa
-except ImportError:
-    from ast import parse, iter_child_nodes  # noqa
-
-try:
-    from .flake8_harobed.pyflakes import Checker
-    from .flake8_harobed.util import skip_warning
-    from .flake8_harobed.mccabe import PathGraphingAstVisitor, WARNING_CODE
-except ValueError:
-    from flake8_harobed.pyflakes import Checker  # noqa
-    from flake8_harobed.util import skip_warning  # noqa
-    from flake8_harobed.mccabe import PathGraphingAstVisitor, WARNING_CODE  # noqa
+    import ast
+except ImportError:   # Python 2.5
+    from flake8.util import ast
+from mccabe import McCabeChecker
 
 
-def pyflakes_check(codeString, filename='(code)'):
+def get_code_complexity(code, threshold=7, filename='stdin'):
     """
     This is a monkey-patch for flake8.pyflakes.check.
-
     Return array of errors instead of print them into STDERR.
     """
-    # First, compile into an AST and handle syntax errors.
     try:
-        tree = compile(codeString, filename, "exec", _ast.PyCF_ONLY_AST)
+        tree = compile(code, filename, "exec", ast.PyCF_ONLY_AST)
     except SyntaxError:
-        # Return syntax error
-        value = sys.exc_info()[1]
-        return [(value.lineno, value.offset, value.args[0])]
-    else:
-        # Okay, it's syntactically valid.  Now check it.
-        w = Checker(tree, filename)
-        sorting = [(msg.lineno, msg) for msg in w.messages]
-        sorting.sort()
-        w.messages = [msg for index, msg in sorting]
+        # return [(value.lineno, value.offset, value.args[0])]
+        # be silent when error, or else syntax errors are reported twice
+        return []
 
-        result = []
-        for warn in w.messages:
-            if skip_warning(warn):
-                continue
-            result.append((warn.lineno, 0, warn.message % warn.message_args))
-        return result
-
-
-def mccabe_get_code_complexity(code, min=7, filename='stdin'):
-    """
-    This is a monkey-patch for flake8.pyflakes.check.
-
-    Return array of errors instead of print them into STDERR.
-    """
-    result = []
-    try:
-        ast = parse(code)
-    except (AttributeError, SyntaxError):
-        value = sys.exc_info()[1]
-        return [(value.lineno, value.offset, value.args[0])]
-
-    visitor = PathGraphingAstVisitor()
-    visitor.preorder(ast, visitor)
-    for graph in visitor.graphs.values():
-        if graph is None or graph.complexity() < min:
-            continue
-        result.append((graph.lineno, 0, '%s %r is too complex (%d)' % (
-            WARNING_CODE, graph.entity, graph.complexity()
-        )))
-    return result
+    complexity = []
+    McCabeChecker.max_complexity = threshold
+    for lineno, offset, text, check in McCabeChecker(tree, filename).run():
+        complexity.append((lineno, offset, text))
+    return complexity
