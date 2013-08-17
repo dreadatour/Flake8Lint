@@ -274,6 +274,13 @@ class Flake8LintBackground(sublime_plugin.EventListener):
     """
     Listen to Siblime Text 2 events.
     """
+    def on_load(self, view):
+        """
+        Do lint on file open.
+        """
+        if settings.get('lint_on_load', False):
+            view.run_command('flake8_lint')
+
     def on_post_save(self, view):
         """
         Do lint on file save if not denied in settings.

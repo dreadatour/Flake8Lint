@@ -55,6 +55,9 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// run flake8 lint on file saving
 		"lint_on_save": true,
 
+		//run flake8 lint on file loading
+		"lint_on_load": false,
+
 		// popup a dialog of detected conditions?
 		"popup": true,
 
