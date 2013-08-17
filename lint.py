@@ -117,6 +117,12 @@ def lint(filename, settings):
 
     # lint with pyflakes
     if settings.get('pyflakes', True):
+        builtins = settings.get('builtins')
+        if builtins:  # builtins is extended
+            # some magic (ok, ok, monkey-patching) goes here
+            old_builtins = pyflakes.checker.Checker.builtIns
+            pyflakes.checker.Checker.builtIns = old_builtins.union(builtins)
+
         flakes_reporter = FlakesReporter()
         pyflakes.api.checkPath(filename, flakes_reporter)
         warnings.extend(flakes_reporter.errors)
@@ -163,6 +169,10 @@ def lint_external(filename, settings, interpreter, linter):
     # do we need to run pyflake lint
     if settings.get('pyflakes', True):
         arguments.append('--pyflakes')
+        builtins = settings.get('builtins')
+        if builtins:
+            arguments.append('--builtins')
+            arguments.append(','.join(builtins))
 
     # do we need to run pep8 lint
     if settings.get('pep8', True):
@@ -204,6 +214,7 @@ if __name__ == "__main__":
     parser.add_argument("filename")
     parser.add_argument('--pyflakes', action='store_true',
                         help="run pyflakes lint")
+    parser.add_argument('--builtins', help="python builtins extend")
     parser.add_argument('--pep8', action='store_true',
                         help="run pep8 lint")
     parser.add_argument('--complexity', type=int, help="check complexity")
@@ -212,6 +223,9 @@ if __name__ == "__main__":
 
     settings = parser.parse_args().__dict__
     filename = settings.pop('filename')
+
+    if settings.get('builtins'):
+        settings['builtins'] = settings['builtins'].split(',')
 
     # run lint and print errors
     for warning in lint(filename, settings):

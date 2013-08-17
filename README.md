@@ -80,6 +80,9 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		//   for Windows or then /home/whatever/pythondist/python for Unix
 		"python_interpreter": "auto",
 
+		// list of python built-in functions (like '_')
+		"builtins": ["_"],
+
 		// turn on pyflakes error lint
 		"pyflakes": true,
 		// turn on pep8 error lint
