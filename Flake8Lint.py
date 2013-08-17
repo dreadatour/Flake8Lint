@@ -11,10 +11,8 @@ import sublime
 import sublime_plugin
 
 try:
-    from .flake8_harobed.util import skip_line
     from .lint import lint, lint_external
 except ValueError:
-    from flake8_harobed.util import skip_line  # noqa
     from lint import lint, lint_external  # noqa
 
 
@@ -32,6 +30,14 @@ def plugin_loaded():
 # sublime.version isn't available at module import time in Sublime 3
 if sys.version_info[0] == 2:
     plugin_loaded()
+
+
+def skip_line(line):
+    """
+    Check if we need to skip line check.
+    Line must ends with '# noqa' or '# NOQA' comment.
+    """
+    return line.strip().lower().endswith('# noqa')
 
 
 def update_statusbar(view):
