@@ -81,7 +81,7 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		"python_interpreter": "auto",
 
 		// list of python built-in functions (like '_')
-		"builtins": ["_"],
+		"builtins": [],
 
 		// turn on pyflakes error lint
 		"pyflakes": true,
