@@ -108,10 +108,6 @@ def lint(filename, settings):
     if not filename or not os.path.exists(filename):
         return
 
-    # skip file check if 'noqa' for whole file is set
-    if skip_file(filename):
-        return
-
     # place for warnings =)
     warnings = []
 
@@ -157,10 +153,6 @@ def lint_external(filename, settings, interpreter, linter):
 
     # check if active view contains file
     if not filename or not os.path.exists(filename):
-        return
-
-    # skip file check if 'noqa' for whole file is set
-    if skip_file(filename):
         return
 
     # first argument is interpreter

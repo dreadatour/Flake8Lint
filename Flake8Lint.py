@@ -11,9 +11,9 @@ import sublime
 import sublime_plugin
 
 try:
-    from .lint import lint, lint_external
+    from .lint import lint, lint_external, skip_file
 except ValueError:
-    from lint import lint, lint_external  # noqa
+    from lint import lint, lint_external, skip_file  # noqa
 
 
 settings = None
@@ -88,6 +88,10 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         # check only Python files
         if not self.view.match_selector(0, 'source.python'):
+            return
+
+        # skip file check if 'noqa' for whole file is set
+        if skip_file(filename):
             return
 
         # we need to always clear regions. three situations here:
