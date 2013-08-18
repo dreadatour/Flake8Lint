@@ -65,8 +65,8 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		"highlight": true,
 
 		// show a mark in the gutter on all highlighted lines:
-		// - 'dot', 'circle' or 'bookmark' to show marks
-		// - '' (empty string) to do not show marks
+		// - "dot", "circle" or "bookmark" to show marks
+		// - "" (empty string) to do not show marks
 		"gutter_marks": "",
 
 		// report successfull (passed) lint
@@ -77,7 +77,7 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// - 'auto' for search default system python interpreter (default value)
 		// - absolute path to python interpreter for define another one
 		//   use platform specific notation, i.e. "C:\\Anaconda\\envs\\py33\\python.exe"
-		//   for Windows or then /home/whatever/pythondist/python for Unix
+		//   for Windows or then "/home/whatever/pythondist/python" for Unix
 		"python_interpreter": "auto",
 
 		// list of python built-in functions (like '_')
