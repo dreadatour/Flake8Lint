@@ -189,9 +189,15 @@ def lint_external(filename, settings, interpreter, linter):
 
     # parse STDOUT for warnings and errors
     for line in proc.stdout:
-        warning = line.decode('utf-8').strip().split(':', 2)
+        line = line.decode('utf-8').strip()
+        warning = line.split(':', 2)
         if len(warning) == 3:
-            warnings.append((int(warning[0]), int(warning[1]), warning[2]))
+            try:
+                warnings.append((int(warning[0]), int(warning[1]), warning[2]))
+            except (TypeError, ValueError):
+                print("Flake8Lint ERROR:", line)
+        else:
+            print("Flake8Lint ERROR:", line)
 
     # and return them =)
     return warnings
