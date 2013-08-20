@@ -145,7 +145,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             # build linter path for installation from git
             if not os.path.exists(linter):
                 linter = os.path.join(
-                    sublime.packages_path(), 'Flake8Lint', 'lint.py')
+                    sublime.packages_path(), 'Python Flake8 Lint', 'lint.py')
 
             if not os.path.exists(linter):
                 sublime.error_message(
