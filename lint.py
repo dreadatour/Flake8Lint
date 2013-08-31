@@ -19,7 +19,7 @@ from flake8.engine import _flake8_noqa
 # but hardcode is a much more bigger evil. Hate hardcore!
 try:
     from .monkey_patching import get_code_complexity
-except ValueError:
+except (ValueError, SystemError):
     from monkey_patching import get_code_complexity
 mccabe.get_code_complexity = get_code_complexity
 

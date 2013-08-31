@@ -12,7 +12,7 @@ import sublime_plugin
 
 try:
     from .lint import lint, lint_external, skip_file
-except ValueError:
+except (ValueError, SystemError):
     from lint import lint, lint_external, skip_file  # noqa
 
 
