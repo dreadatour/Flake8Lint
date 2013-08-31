@@ -175,6 +175,10 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         is_highlight = settings.get('highlight', False)
         is_popup = settings.get('popup', True)
 
+        mark = settings.get('gutter_marks', '')
+        if mark not in ('', 'dot', 'circle', 'bookmark', 'cross'):
+            mark = ''
+
         regions = []
         view_errors = {}
         errors_list_filtered = []
@@ -217,7 +221,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 errors_list_filtered.append(e)
 
             # prepare errors regions
-            if is_highlight or settings.get('gutter_marks', ''):
+            if is_highlight or mark:
                 # prepare line
                 line_text = full_line_text.rstrip('\r\n')
                 line_length = len(line_text)
@@ -243,15 +247,14 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         ERRORS_IN_VIEWS[self.view.id()] = view_errors
 
         # highlight error regions if defined
-        mark = settings.get('gutter_marks', '')
-        if mark != "":
-            self.view.add_regions('flake8-errors', regions,
-                                  'invalid.deprecated', mark,
-                                  sublime.HIDDEN)
         if is_highlight:
             self.view.add_regions('flake8-errors', regions,
                                   'invalid.deprecated', mark,
                                   sublime.DRAW_OUTLINED)
+        elif mark:
+            self.view.add_regions('flake8-errors', regions,
+                                  'invalid.deprecated', mark,
+                                  sublime.HIDDEN)
 
         if is_popup:
             # view errors window
