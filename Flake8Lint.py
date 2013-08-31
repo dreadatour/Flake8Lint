@@ -217,7 +217,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 errors_list_filtered.append(e)
 
             # prepare errors regions
-            if is_highlight:
+            if is_highlight or settings.get('gutter_marks', ''):
                 # prepare line
                 line_text = full_line_text.rstrip('\r\n')
                 line_length = len(line_text)
@@ -243,8 +243,12 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         ERRORS_IN_VIEWS[self.view.id()] = view_errors
 
         # highlight error regions if defined
+        mark = settings.get('gutter_marks', '')
+        if mark != "":
+            self.view.add_regions('flake8-errors', regions,
+                                  'invalid.deprecated', mark,
+                                  sublime.HIDDEN)
         if is_highlight:
-            mark = settings.get('gutter_marks', '')
             self.view.add_regions('flake8-errors', regions,
                                   'invalid.deprecated', mark,
                                   sublime.DRAW_OUTLINED)
