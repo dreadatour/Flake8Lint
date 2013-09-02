@@ -97,7 +97,9 @@ class FlakesReporter(object):
         """
         # unused import has no col attr, seems buggy... this fixes it
         col = getattr(msg, 'col', 0)
-        self.errors.append((msg.lineno, col, msg.message % msg.message_args))
+        self.errors.append(
+            (msg.lineno, col, msg.flake8_msg % msg.message_args)
+        )
 
 
 def lint(filename, settings):
@@ -216,7 +218,7 @@ if __name__ == "__main__":
     parser.add_argument('--pep8', action='store_true',
                         help="run pep8 lint")
     parser.add_argument('--complexity', type=int, help="check complexity")
-    parser.add_argument('--pep8-max-line-length', type=int,
+    parser.add_argument('--pep8-max-line-length', type=int, default=79,
                         help="pep8 max line length")
 
     settings = parser.parse_args().__dict__
