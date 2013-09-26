@@ -13,6 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'contrib'))
 import pyflakes.api
 import mccabe
 import pep8
+from pep8 import readlines
 from flake8.engine import _flake8_noqa
 
 # Monkey-patching is a big evil (don't do this),
@@ -32,12 +33,7 @@ def skip_file(path):
     Returns True if line with special commit is found in path:
     # flake8 : noqa
     """
-    f = open(path)
-    try:
-        content = f.read()
-    finally:
-        f.close()
-    return _flake8_noqa(content) is not None
+    return _flake8_noqa(readlines(path).join()) is not None
 
 
 class Pep8Report(pep8.BaseReport):
