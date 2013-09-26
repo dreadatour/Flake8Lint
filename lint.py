@@ -33,7 +33,7 @@ def skip_file(path):
     Returns True if line with special commit is found in path:
     # flake8 : noqa
     """
-    return _flake8_noqa(readlines(path).join()) is not None
+    return _flake8_noqa(''.join(readlines(path))) is not None
 
 
 class Pep8Report(pep8.BaseReport):
