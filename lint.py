@@ -171,7 +171,7 @@ def lint_external(filename, settings, interpreter, linter):
     # do we need to run pep8 lint
     if settings.get('pep8', True):
         arguments.append('--pep8')
-        max_line_length = settings.get('pep8_max_line_length')
+        max_line_length = settings.get('pep8_max_line_length', 79)
         arguments.append('--pep8-max-line-length')
         arguments.append(str(max_line_length))
 
