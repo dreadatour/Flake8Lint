@@ -125,7 +125,7 @@ def lint(filename, settings):
     if settings.get('pep8', True):
         pep8style = pep8.StyleGuide(
             reporter=Pep8Report,
-            ignore=settings.get('ignore', []),
+            ignore=['DIRTY-HACK'],  # PEP8 error will never starts like this
             max_line_length=settings.get('pep8_max_line_length')
         )
         pep8style.input_file(filename)

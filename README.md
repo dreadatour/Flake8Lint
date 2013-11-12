@@ -108,11 +108,11 @@ To change default settings, go to "Preferences" -> "Package Settings" -> "Python
 Note
 ----
 
-Pep8 ignores "E24" errors by default. This plugin will not ignore them.
+Pep8 ignores "E123", "E226" and "E24" errors by default. This plugin will not ignore them.
 
 If you're not agree with this plugin, please, add next string in your config:
 
-    "ignore": ["E24"]
+    "ignore": ["E123", "E226", "E24"]
 
 
 Features / Usage
