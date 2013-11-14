@@ -49,56 +49,56 @@ Config
 Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - Default"
 
 ```JavaScript
-	{
-		// run flake8 lint on file saving
-		"lint_on_save": true,
+{
+	// run flake8 lint on file saving
+	"lint_on_save": true,
 
-		// run flake8 lint on file loading
-		"lint_on_load": false,
+	// run flake8 lint on file loading
+	"lint_on_load": false,
 
-		// popup a dialog of detected conditions?
-		"popup": true,
+	// popup a dialog of detected conditions?
+	"popup": true,
 
-		// highlight detected conditions?
-		"highlight": true,
+	// highlight detected conditions?
+	"highlight": true,
 
-		// show a mark in the gutter on all highlighted lines:
-		// - "dot", "circle" or "bookmark" to show marks
-		// - "" (empty string) to do not show marks
-		"gutter_marks": "",
+	// show a mark in the gutter on all highlighted lines:
+	// - "dot", "circle" or "bookmark" to show marks
+	// - "" (empty string) to do not show marks
+	"gutter_marks": "",
 
-		// report successfull (passed) lint
-		"report_on_success": false,
+	// report successfull (passed) lint
+	"report_on_success": false,
 
-		// set python interpreter (lint files for python >= 2.7):
-		// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
-		// - 'auto' for search default system python interpreter (default value)
-		// - absolute path to python interpreter for define another one
-		//   use platform specific notation, i.e. "C:\\Anaconda\\envs\\py33\\python.exe"
-		//   for Windows or then "/home/whatever/pythondist/python" for Unix
-		"python_interpreter": "auto",
+	// set python interpreter (lint files for python >= 2.7):
+	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
+	// - 'auto' for search default system python interpreter (default value)
+	// - absolute path to python interpreter for define another one
+	//   use platform specific notation, i.e. "C:\\Anaconda\\envs\\py33\\python.exe"
+	//   for Windows or then "/home/whatever/pythondist/python" for Unix
+	"python_interpreter": "auto",
 
-		// list of python built-in functions (like '_')
-		"builtins": [],
+	// list of python built-in functions (like '_')
+	"builtins": [],
 
-		// turn on pyflakes error lint
-		"pyflakes": true,
-		// turn on pep8 error lint
-		"pep8": true,
-		// turn off complexity check (set number > 0 to check complexity level)
-		"complexity": -1,
+	// turn on pyflakes error lint
+	"pyflakes": true,
+	// turn on pep8 error lint
+	"pep8": true,
+	// turn off complexity check (set number > 0 to check complexity level)
+	"complexity": -1,
 
-		// set desired max line length
-		"pep8_max_line_length": 79,
+	// set desired max line length
+	"pep8_max_line_length": 79,
 
-		// select errors and warnings (e.g. ["E", "W6"])
-		"select": [],
-		// skip errors and warnings (e.g. ["E303", E4", "W"])
-		"ignore": [],
+	// select errors and warnings (e.g. ["E", "W6"])
+	"select": [],
+	// skip errors and warnings (e.g. ["E303", E4", "W"])
+	"ignore": [],
 
-		// files to ignore, for example: ["*.mako", "test*.py"]
-		"ignore_files": []
-	}
+	// files to ignore, for example: ["*.mako", "test*.py"]
+	"ignore_files": []
+}
 ```
 
 To change default settings, go to "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - User" and paste default config to the opened file and make your changes.
