@@ -48,6 +48,7 @@ Config
 
 Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - Default"
 
+```JavaScript
 	{
 		// run flake8 lint on file saving
 		"lint_on_save": true,
@@ -98,6 +99,7 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 		// files to ignore, for example: ["*.mako", "test*.py"]
 		"ignore_files": []
 	}
+```
 
 To change default settings, go to "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - User" and paste default config to the opened file and make your changes.
 
