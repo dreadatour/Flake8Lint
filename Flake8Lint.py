@@ -44,6 +44,27 @@ def skip_line(line):
     return line.strip().lower().endswith('# noqa')
 
 
+def get_current_line(view):
+    """
+    Get current line (line under cursor).
+    """
+    # get view selection (exit if no selection)
+    view_selection = view.sel()
+    if not view_selection:
+        return None
+
+    point = view_selection[0].end()
+    position = view.rowcol(point)
+    return position[0]
+
+
+def clear_statusbar(view):
+    """
+    Clear status bar flake8 error.
+    """
+    view.erase_status('flake8-tip')
+
+
 def update_statusbar(view):
     """
     Update status bar with error.
@@ -58,17 +79,17 @@ def update_statusbar(view):
     if not view_selection:
         return
 
-    # get current line (line under cursor)
-    current_line = view.rowcol(view_selection[0].end())[0]
+    current_line = get_current_line(view)
+    if current_line is None:
+        return
 
     if current_line in view_errors:
         # there is an error on current line
         errors = view_errors[current_line]
-        view.set_status('flake8-tip',
-                        'Flake8 lint errors: %s' % ' / '.join(errors))
+        view.set_status('flake8-tip', 'flake8: %s' % ' / '.join(errors))
     else:
         # no errors - clear statusbar
-        view.erase_status('flake8-tip')
+        clear_statusbar(view)
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
@@ -286,6 +307,10 @@ class Flake8LintBackground(sublime_plugin.EventListener):
     """
     Listen to Siblime Text 2 events.
     """
+    def __init__(self, *args, **kwargs):
+        super(Flake8LintBackground, self).__init__(*args, **kwargs)
+        self._last_selected_line = None
+
     def _lintOnLoad(self, view, retry=False):
         """
         Some code to lint file on load.
@@ -334,4 +359,13 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         if view.is_scratch():
             return  # do not lint scratch views
 
-        update_statusbar(view)
+        current_line = get_current_line(view)
+
+        if current_line is None:
+            if self._last_selected_line is not None:  # line was selected
+                self._last_selected_line = None
+                clear_statusbar(view)
+
+        elif current_line != self._last_selected_line:  # line was changed
+            self._last_selected_line = current_line
+            update_statusbar(view)
