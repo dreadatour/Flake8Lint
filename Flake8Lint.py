@@ -298,7 +298,11 @@ class Flake8LintBackground(sublime_plugin.EventListener):
             sublime.set_timeout(lambda: self._lintOnLoad(view, True), 100)
             return
 
-        elif view.window().active_view().id() != view.id():
+        if view.window() is None:  # view window is not initialized - wait...
+            sublime.set_timeout(lambda: self._lintOnLoad(view, True), 100)
+            return
+
+        if view.window().active_view().id() != view.id():
             return  # not active anymore, don't lint it!
 
         view.run_command("flake8_lint")
@@ -307,6 +311,9 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         Do lint on file load.
         """
+        if view.is_scratch():
+            return  # do not lint scratch views
+
         if settings.get('lint_on_load', False):
             self._lintOnLoad(view)
 
@@ -314,6 +321,9 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         Do lint on file save.
         """
+        if view.is_scratch():
+            return  # do not lint scratch views
+
         if settings.get('lint_on_save', True):
             view.run_command('flake8_lint')
 
@@ -321,4 +331,7 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         Selection was modified: update status bar.
         """
+        if view.is_scratch():
+            return  # do not lint scratch views
+
         update_statusbar(view)
