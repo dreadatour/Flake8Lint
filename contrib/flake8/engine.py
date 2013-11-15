@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import re
+import platform
 
 import pep8
 
@@ -37,7 +38,10 @@ def get_parser():
     """
     (extensions, parser_hooks, options_hooks) = _register_extensions()
     details = ', '.join(['%s: %s' % ext for ext in extensions])
-    parser = pep8.get_parser('flake8', '%s (%s)' % (__version__, details))
+    python_version = get_python_version()
+    parser = pep8.get_parser('flake8', '%s (%s) %s' % (
+        __version__, details, python_version
+    ))
     for opt in ('--repeat', '--testsuite', '--doctest'):
         try:
             parser.remove_option(opt)
@@ -78,3 +82,12 @@ def get_style_guide(**kwargs):
     for options_hook in options_hooks:
         options_hook(options)
     return styleguide
+
+
+def get_python_version():
+    # The implementation isn't all that important.
+    try:
+        impl = platform.python_implementation() + " "
+    except AttributeError:  # Python 2.5
+        impl = ''
+    return '%s%s on %s' % (impl, platform.python_version(), platform.system())
