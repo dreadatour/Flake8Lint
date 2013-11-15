@@ -1,13 +1,11 @@
 {
 	// run flake8 lint on file saving
 	"lint_on_save": true,
-
 	// run flake8 lint on file loading
 	"lint_on_load": false,
 
 	// popup a dialog of detected conditions?
 	"popup": true,
-
 	// highlight detected conditions?
 	"highlight": true,
 
@@ -18,6 +16,11 @@
 
 	// report successfull (passed) lint
 	"report_on_success": false,
+
+	// load global flake8 config ("~/.config/flake8")
+	"use_flake8_global_config": true,
+	// load per-project config (i.e. "tox.ini", "setup.cfg" and ".pep8" files)
+	"use_flake8_project_config": true,
 
 	// set python interpreter (lint files for python >= 2.7):
 	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)

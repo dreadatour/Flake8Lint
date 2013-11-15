@@ -14,7 +14,7 @@ import pyflakes.api
 import mccabe
 import pep8
 from pep8 import readlines
-from flake8.engine import _flake8_noqa
+from flake8.engine import _flake8_noqa, get_style_guide
 
 # Monkey-patching is a big evil (don't do this),
 # but hardcode is a much more bigger evil. Hate hardcore!
@@ -26,6 +26,16 @@ mccabe.get_code_complexity = get_code_complexity
 
 from flake8._pyflakes import patch_pyflakes
 patch_pyflakes()
+
+
+if sys.platform.startswith('win'):
+    DEFAULT_CONFIG_FILE = os.path.expanduser(r'~\.flake8')
+else:
+    DEFAULT_CONFIG_FILE = os.path.join(
+        os.getenv('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'),
+        'flake8'
+    )
+PROJECT_CONFIG_FILES = ('setup.cfg', 'tox.ini', '.pep8')
 
 
 def skip_file(path):
@@ -96,6 +106,49 @@ class FlakesReporter(object):
         self.errors.append(
             (msg.lineno, col, msg.flake8_msg % msg.message_args)
         )
+
+
+def load_flake8_config(filename, global_config=False, project_config=False):
+    """
+    Returns flake8 settings from config file.
+
+    More info: http://flake8.readthedocs.org/en/latest/config.html
+    """
+    config_file = None
+
+    # search config in filename dir and all parent dirs
+    if project_config:
+        parent = tail = os.path.abspath(filename)
+        while tail:
+            for fn in PROJECT_CONFIG_FILES:
+                check_file = os.path.join(parent, fn)
+                if os.path.isfile(check_file):
+                    config_file = check_file
+                    break
+            if config_file:
+                break
+            parent, tail = os.path.split(parent)
+
+    # check global config also
+    if not config_file and global_config:
+        config_file = DEFAULT_CONFIG_FILE
+
+    if config_file and os.path.isfile(config_file):
+        # some magic (oops, monkey_patching again)
+        pep8.DEFAULT_CONFIG = config_file
+        pep8.DEFAULT_IGNORE = ''
+
+        # parse config file
+        flake8_style = get_style_guide(config_file=True)
+
+        return {
+            'ignore': flake8_style.options.ignore,
+            'select': flake8_style.options.select,
+            'ignore_files': flake8_style.options.exclude,
+            'pep8_max_line_length': flake8_style.options.max_line_length
+        }
+    else:
+        return {}
 
 
 def lint(filename, settings):

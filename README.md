@@ -23,7 +23,7 @@ Install
 
 **With the Package Control plug-in:** The easiest way to install Python Flake8 Lint is through Package Control, which can be found at this site: http://wbond.net/sublime_packages/package_control
 
-Once you install Package Control, restart Sublime Text and bring up the Command Palette (Command+Shift+P on OS X, Control+Shift+P on Linux/Windows). Select "Package Control: Install Package", wait while Package Control fetches the latest package list, then select Python Flake8 Lint when the list appears. The advantage of using this method is that Package Control will automatically keep Python Flake8 Lint up to date with the latest version.
+Once you install Package Control, restart Sublime Text and bring up the Command Palette (<kbd>Command</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> on OS X, <kbd>Control</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> on Linux/Windows). Select "Package Control: Install Package", wait while Package Control fetches the latest package list, then select Python Flake8 Lint when the list appears. The advantage of using this method is that Package Control will automatically keep Python Flake8 Lint up to date with the latest version.
 
 **Manual installation:** Download the latest source from [GitHub](https://github.com/dreadatour/Flake8Lint/zipball/master), unzip it and rename the folder to "Python Flake8 Lint". Put this folder into your Sublime Text "Packages" directory.
 
@@ -43,32 +43,35 @@ The "Packages" directory is located at:
     * Windows: `%APPDATA%/Sublime Text 3/Packages/`
 
 
-Config
-------
+Plugin config
+-------------
 
-Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - Default"
+Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package Settings</kbd>-><kbd>Python Flake8 Lint</kbd>-><kbd>Settings - Default</kbd>
 
 ```JavaScript
 {
 	// run flake8 lint on file saving
 	"lint_on_save": true,
-
 	// run flake8 lint on file loading
 	"lint_on_load": false,
 
 	// popup a dialog of detected conditions?
 	"popup": true,
-
 	// highlight detected conditions?
 	"highlight": true,
 
-	// show a mark in the gutter on all highlighted lines:
+	// show a mark in the gutter on all lines with errors/warnings:
 	// - "dot", "circle" or "bookmark" to show marks
 	// - "" (empty string) to do not show marks
 	"gutter_marks": "",
 
 	// report successfull (passed) lint
 	"report_on_success": false,
+
+	// load global flake8 config ("~/.config/flake8")
+	"use_flake8_global_config": true,
+	// load per-project config (i.e. "tox.ini", "setup.cfg" and ".pep8" files)
+	"use_flake8_project_config": true,
 
 	// set python interpreter (lint files for python >= 2.7):
 	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
@@ -101,7 +104,62 @@ Default Python Flake8 Lint config: "Preferences" -> "Package Settings" -> "Pytho
 }
 ```
 
-To change default settings, go to "Preferences" -> "Package Settings" -> "Python Flake8 Lint" -> "Settings - User" and paste default config to the opened file and make your changes.
+To change default settings, go to <kbd>Preferences</kbd>-><kbd>Package Settings</kbd>-><kbd>Python Flake8 Lint</kbd>-><kbd>Settings - User</kbd> and paste default config to the opened file and make your changes.
+
+
+Flake8 config
+-------------
+
+"Python Flake8 Lint" plugin will load config in this order:
+
+1. ST plugin global settings.
+2. ST plugin user settings.
+3. ST project settings.
+4. Global flake8 settings (see also: [Flake8 docs: global config](http://flake8.readthedocs.org/en/latest/config.html#global)):
+    - ~/.config/flake8
+5. Flake8 project settings (see also: [Flake8 docs: per-project config](http://flake8.readthedocs.org/en/latest/config.html#per-project)):
+    - tox.ini
+    - setup.cfg
+    - .pep8
+
+Only one flake8 settings file will be loaded, e.g. if user have project settings in '.pep8' file, global flake8 settings from file ~/.config/flake8 will be ignored.
+
+All Sublime Text settings are inherited, e.g. you can define only one setting in project config file, all other will be inherited from plugin config.
+
+There are few "Python Flake8 Lint" plugin options to control flake8 configs:
+
+- "**use_flake8_global_config**" option is used to enable or disable global flake8 config (i.e. "~/.config/flake8" file)
+- "**use_flake8_project_config**" option is used to enable or disable local (project) config (i.e. "tox.ini", "setup.cfg" and ".pep8" files)
+
+
+Project Flake8 config
+---------------------
+
+You could define per-project config for "Python Flake8 Lint". Use <kbd>Project</kbd>-><kbd>Edit Project</kbd> menu and add the `flake8lint` section in `settings` as shown below:
+
+```JavaScript
+{
+	"folders":
+	[
+		{
+			"path": "/path/to/project"
+		}
+	],
+	"settings": {
+		"flake8lint": {
+			"python_interpreter": "auto",
+			"builtins": [],
+			"pyflakes": true,
+			"pep8": true,
+			"complexity": -1,
+			"pep8_max_line_length": 79,
+			"select": [],
+			"ignore": [],
+			"ignore_files": []
+		}
+	}
+}
+```
 
 
 Note

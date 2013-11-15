@@ -11,12 +11,21 @@ import sublime
 import sublime_plugin
 
 try:
-    from .lint import lint, lint_external, skip_file
+    from .lint import lint, lint_external, skip_file, load_flake8_config
 except (ValueError, SystemError):
-    from lint import lint, lint_external, skip_file  # noqa
+    from lint import lint, lint_external, skip_file, load_flake8_config  # noqa
 
 
 settings = None
+PROJECT_SETTINGS_KEYS = (
+    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'complexity',
+    'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
+    'use_flake8_global_config', 'use_flake8_project_config',
+)
+FLAKE8_SETTINGS_KEYS = (
+    'ignore', 'select', 'ignore_files', 'pep8_max_line_length'
+)
+
 ERRORS_IN_VIEWS = {}
 FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -92,6 +101,49 @@ def update_statusbar(view):
         clear_statusbar(view)
 
 
+def get_view_settings(view):
+    """
+    Returns dict with view settings.
+
+    Settings are taken from (see README for more info):
+    - ST plugin settings (global, user, project)
+    - flake8 settings (global, project)
+    """
+    result_settings = {}
+
+    # get settings from global (user) plugin settings
+    view_settings = view.settings().get('flake8lint') or {}
+    for param in PROJECT_SETTINGS_KEYS:
+        if param in view_settings:
+            result_settings[param] = view_settings.get(param)
+        elif settings.has(param):
+            result_settings[param] = settings.get(param)
+
+    global_config = result_settings.get('use_flake8_global_config', False)
+    project_config = result_settings.get('use_flake8_project_config', False)
+
+    if global_config or project_config:
+        filename = os.path.abspath(view.file_name())
+
+        flake8_config = load_flake8_config(filename, global_config,
+                                           project_config)
+        for param in FLAKE8_SETTINGS_KEYS:
+            if param in flake8_config:
+                result_settings[param] = flake8_config.get(param)
+
+    return result_settings
+
+
+def filename_match(filename, patterns):
+    """
+    Returns True if filename is matched with patterns.
+    """
+    for path_part in filename.split(os.path.sep):
+        if any(fnmatch(path_part, pattern) for pattern in patterns):
+            return True
+    return False
+
+
 class Flake8LintCommand(sublime_plugin.TextCommand):
     """
     Do flake8 lint on current file.
@@ -124,12 +176,24 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         # we need to always erase status too. same situations.
         self.view.erase_status('flake8-tip')
 
-        # skip files by mask
-        ignore_files = settings.get('ignore_files')
-        if ignore_files:
-            basename = os.path.basename(filename)
+        # get view settings
+        view_settings = get_view_settings(self.view)
+
+        # skip files by pattern
+        patterns = view_settings.get('ignore_files')
+        if patterns:
+            # add file basename to check list
+            paths = [os.path.basename(filename)]
+
+            # add file relative paths to check list
+            for folder in sublime.active_window().folders():
+                folder_name = folder.rstrip(os.path.sep) + os.path.sep
+                if filename.startswith(folder_name):
+                    paths.append(filename[len(folder_name):])
+
             try:
-                if any(fnmatch(basename, mask) for mask in ignore_files):
+                if any(filename_match(path, patterns) for path in set(paths)):
+                    print("File '%s' lint was ignored by settings" % filename)
                     return
             except (TypeError, ValueError):
                 sublime.error_message(
@@ -142,11 +206,11 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             self.view.run_command('save')
 
         # try to get interpreter
-        interpreter = settings.get('python_interpreter', 'auto')
+        interpreter = view_settings.get('python_interpreter', 'auto')
 
         if not interpreter or interpreter == 'internal':
             # if interpreter is Sublime Text 2 internal python - lint file
-            self.errors_list = lint(filename, settings)
+            self.errors_list = lint(filename, view_settings)
         else:
             # else - check interpreter
             if interpreter == 'auto':
@@ -175,24 +239,24 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 )
 
             # and lint file in subprocess
-            self.errors_list = lint_external(filename, settings,
+            self.errors_list = lint_external(filename, view_settings,
                                              interpreter, linter)
 
         # show errors
         if self.errors_list:
-            self.show_errors()
+            self.show_errors(view_settings)
         elif settings.get('report_on_success', False):
             sublime.message_dialog('Flake8 Lint: SUCCESS')
 
-    def show_errors(self):
+    def show_errors(self, view_settings):
         """
         Show all errors.
         """
         errors_to_show = []
 
-        # get select and ignore settings
-        select = settings.get('select') or []
-        ignore = settings.get('ignore') or []
+        # get error report settings
+        select = view_settings.get('select') or []
+        ignore = view_settings.get('ignore') or []
         is_highlight = settings.get('highlight', False)
         is_popup = settings.get('popup', True)
 
