@@ -6,15 +6,21 @@ from __future__ import print_function
 import os
 import sys
 
+try:
+    from configparser import RawConfigParser
+except ImportError:
+    from ConfigParser import RawConfigParser
+
 # Add 'contrib' to sys.path to simulate installation of package 'flake8'
 # and it's dependencies: 'pyflake', 'pep8' and 'mccabe'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'contrib'))
+
 
 import pyflakes.api
 import mccabe
 import pep8
 from pep8 import readlines
-from flake8.engine import _flake8_noqa, get_style_guide
+from flake8.engine import _flake8_noqa
 
 # Monkey-patching is a big evil (don't do this),
 # but hardcode is a much more bigger evil. Hate hardcore!
@@ -35,7 +41,7 @@ else:
         os.getenv('XDG_CONFIG_HOME') or os.path.expanduser('~/.config'),
         'flake8'
     )
-PROJECT_CONFIG_FILES = ('setup.cfg', 'tox.ini', '.pep8')
+CONFIG_FILES = ('setup.cfg', 'tox.ini', '.pep8')
 
 
 def skip_file(path):
@@ -114,41 +120,39 @@ def load_flake8_config(filename, global_config=False, project_config=False):
 
     More info: http://flake8.readthedocs.org/en/latest/config.html
     """
-    config_file = None
+    parser = RawConfigParser()
+
+    # check global config
+    if global_config and os.path.isfile(DEFAULT_CONFIG_FILE):
+        parser.read(DEFAULT_CONFIG_FILE)
 
     # search config in filename dir and all parent dirs
     if project_config:
         parent = tail = os.path.abspath(filename)
         while tail:
-            for fn in PROJECT_CONFIG_FILES:
-                check_file = os.path.join(parent, fn)
-                if os.path.isfile(check_file):
-                    config_file = check_file
-                    break
-            if config_file:
+            if parser.read([os.path.join(parent, fn) for fn in CONFIG_FILES]):
                 break
             parent, tail = os.path.split(parent)
 
-    # check global config also
-    if not config_file and global_config:
-        config_file = DEFAULT_CONFIG_FILE
-
-    if config_file and os.path.isfile(config_file):
-        # some magic (oops, monkey_patching again)
-        pep8.DEFAULT_CONFIG = config_file
-        pep8.DEFAULT_IGNORE = ''
-
-        # parse config file
-        flake8_style = get_style_guide(config_file=True)
-
-        return {
-            'ignore': flake8_style.options.ignore,
-            'select': flake8_style.options.select,
-            'ignore_files': flake8_style.options.exclude,
-            'pep8_max_line_length': flake8_style.options.max_line_length
-        }
-    else:
-        return {}
+    result = {}
+    if parser.has_section('flake8'):
+        options = (
+            ('ignore', 'ignore', 'list'),
+            ('select', 'select', 'list'),
+            ('exclude', 'ignore_files', 'list'),
+            ('max_line_length', 'pep8_max_line_length', 'int')
+        )
+        for config, plugin, option_type in options:
+            if parser.has_option('flake8', config):
+                if option_type == 'list':
+                    option_value = parser.get('flake8', config).strip()
+                    if option_value:
+                        result[plugin] = option_value.split(',')
+                elif option_type == 'int':
+                    option_value = parser.get('flake8', config).strip()
+                    if option_value:
+                        result[plugin] = parser.getint('flake8', config)
+    return result
 
 
 def lint(filename, settings):

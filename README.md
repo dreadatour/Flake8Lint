@@ -122,9 +122,7 @@ Flake8 config
     - setup.cfg
     - .pep8
 
-Only one flake8 settings file will be loaded, e.g. if user have project settings in '.pep8' file, global flake8 settings from file ~/.config/flake8 will be ignored.
-
-All Sublime Text settings are inherited, e.g. you can define only one setting in project config file, all other will be inherited from plugin config.
+All settings are inherited, e.g. you can define only one setting in project config file, all other will be inherited from plugin config. If one of the options (e.g. 'ignore' param) will be defined in several config files, only last one will be taken.
 
 There are few "Python Flake8 Lint" plugin options to control flake8 configs:
 
