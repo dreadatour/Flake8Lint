@@ -104,7 +104,7 @@ class FlakesReporter(object):
             offset = offset - (len(text) - len(line))
             self.errors.append((lineno, offset, msg))
         else:
-            self.errors.append(lineno, 0, msg)
+            self.errors.append((lineno, 0, msg))
 
     def flake(self, msg):
         """
