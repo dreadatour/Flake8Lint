@@ -253,9 +253,9 @@ def lint_external(filename, settings, interpreter, linter):
             try:
                 warnings.append((int(warning[0]), int(warning[1]), warning[2]))
             except (TypeError, ValueError):
-                print("Flake8Lint ERROR:", line)
+                print("Flake8Lint ERROR: {0}".format(line))
         else:
-            print("Flake8Lint ERROR:", line)
+            print("Flake8Lint ERROR: {0}".format(line))
 
     # and return them =)
     return warnings

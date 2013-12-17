@@ -37,7 +37,7 @@ def debug(msg):
     """
     if not debug_enabled:
         return
-    print("[Flake8Lint DEBUG] {}".format(msg))
+    print("[Flake8Lint DEBUG] {0}".format(msg))
 
 
 def plugin_loaded():
@@ -65,7 +65,7 @@ def skip_line(line):
     Line must ends with '# noqa' or '# NOQA' comment.
     """
     if line.strip().lower().endswith('# noqa'):
-        debug("skip line '{}'".format(line))
+        debug("skip line '{0}'".format(line))
         return True
     return False
 
@@ -202,7 +202,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         # skip files by pattern
         patterns = view_settings.get('ignore_files')
-        debug("ignore file patterns: {}".format(patterns))
+        debug("ignore file patterns: {0}".format(patterns))
         if patterns:
             # add file basename to check list
             paths = [os.path.basename(filename)]
@@ -215,7 +215,8 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
             try:
                 if any(filename_match(path, patterns) for path in set(paths)):
-                    print("File '%s' lint was ignored by settings" % filename)
+                    message = "File '{0}' lint was skipped by 'ignore' setting"
+                    print(message.format(filename))
                     return
             except (TypeError, ValueError):
                 sublime.error_message(
@@ -230,7 +231,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         # try to get interpreter
         interpreter = view_settings.get('python_interpreter', 'auto')
-        debug("python interpreter: {}".format(interpreter))
+        debug("python interpreter: {0}".format(interpreter))
 
         if not interpreter or interpreter == 'internal':
             # if interpreter is Sublime Text 2 internal python - lint file
@@ -244,7 +245,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                     interpreter = 'pythonw'
                 else:
                     interpreter = 'python'
-                debug("guess interpreter: '{}'".format(interpreter))
+                debug("guess interpreter: '{0}'".format(interpreter))
             elif not os.path.exists(interpreter):
                 sublime.error_message(
                     "Python Flake8 Lint error:\n"
@@ -253,13 +254,13 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
             # build linter path for Packages Manager installation
             linter = os.path.join(FLAKE_DIR, 'lint.py')
-            debug("linter file: {}".format(linter))
+            debug("linter file: {0}".format(linter))
 
             # build linter path for installation from git
             if not os.path.exists(linter):
                 linter = os.path.join(
                     sublime.packages_path(), 'Python Flake8 Lint', 'lint.py')
-                debug("linter is not exists, try this: {}".format(linter))
+                debug("linter is not exists, try this: {0}".format(linter))
 
             if not os.path.exists(linter):
                 sublime.error_message(
@@ -272,7 +273,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             self.errors_list = lint_external(filename, view_settings,
                                              interpreter, linter)
 
-        debug("lint errors found: {}".format(len(self.errors_list)))
+        debug("lint errors found: {0}".format(len(self.errors_list)))
         # show errors
         if self.errors_list:
             self.show_errors(view_settings)
@@ -296,17 +297,17 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         if mark not in ('', 'dot', 'circle', 'bookmark', 'cross'):
             mark = ''
 
-        debug("'select' setting: {}".format(select))
-        debug("'ignore' setting: {}".format(ignore))
-        debug("'is_highlight' setting: {}".format(is_highlight))
-        debug("'is_popup' setting: {}".format(is_popup))
+        debug("'select' setting: {0}".format(select))
+        debug("'ignore' setting: {0}".format(ignore))
+        debug("'is_highlight' setting: {0}".format(is_highlight))
+        debug("'is_popup' setting: {0}".format(is_popup))
 
         regions = []
         view_errors = {}
         errors_list_filtered = []
 
         for e in self.errors_list:
-            debug("error to show: {}".format(e))
+            debug("error to show: {0}".format(e))
             current_line = e[0] - 1
             error_text = e[2]
 
