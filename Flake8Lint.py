@@ -166,6 +166,46 @@ def filename_match(filename, patterns):
     return False
 
 
+class Flake8NextErrorCommand(sublime_plugin.TextCommand):
+    """
+    Jump to next lint error command.
+    """
+    def run(self, edit):
+        """
+        Jump to next lint error.
+        """
+        debug("jump to next lint error")
+
+        view_errors = ERRORS_IN_VIEWS.get(self.view.id())
+        if not view_errors:
+            debug("no view errors found")
+            return
+
+        # get view selection (exit if no selection)
+        view_selection = self.view.sel()
+        if not view_selection:
+            return
+
+        current_line = get_current_line(self.view)
+        if current_line is None:
+            return
+
+        next_line = None
+        for i, error_line in enumerate(sorted(view_errors.keys())):
+            if i == 0:
+                next_line = error_line
+            if error_line > current_line:
+                next_line = error_line
+                break
+
+        debug("jump to line {0}".format(next_line))
+
+        point = self.view.text_point(next_line, 0)
+        self.view.sel().clear()
+        self.view.sel().add(sublime.Region(point))
+        self.view.show(point)
+
+
 class Flake8LintCommand(sublime_plugin.TextCommand):
     """
     Do flake8 lint on current file.

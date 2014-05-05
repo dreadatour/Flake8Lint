@@ -1,3 +1,4 @@
 [
-	{ "keys": ["ctrl+super+8"], "command": "flake8_lint" }
+	{ "keys": ["ctrl+super+8"], "command": "flake8_lint" },
+	{ "keys": ["ctrl+super+9"], "command": "flake8_next_error" }
 ]
