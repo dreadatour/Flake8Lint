@@ -181,13 +181,12 @@ And move to error line/char on select.
 
 Use these keys (by default) to run lint:
 
-    * OS X: <kbd>Ctrl+Super+8</kbd>
-    * Linux: <kbd>Ctrl+Alt+8</kbd>
-    * Windows: <kbd>Ctrl+Alt+Shift+8</kbd>
+* OS X: <kbd>Ctrl+Super+8</kbd>
+* Linux: <kbd>Ctrl+Alt+8</kbd>
+* Windows: <kbd>Ctrl+Alt+Shift+8</kbd>
 
 Use these keys (by default) to jump to next lint error:
 
-    * OS X: <kbd>Ctrl+Super+9</kbd>
-    * Linux: <kbd>Ctrl+Alt+9</kbd>
-    * Windows: <kbd>Ctrl+Alt+Shift+9</kbd>
-
+* OS X: <kbd>Ctrl+Super+9</kbd>
+* Linux: <kbd>Ctrl+Alt+9</kbd>
+* Windows: <kbd>Ctrl+Alt+Shift+9</kbd>
