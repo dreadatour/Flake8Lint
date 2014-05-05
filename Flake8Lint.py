@@ -428,6 +428,14 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         super(Flake8LintBackground, self).__init__(*args, **kwargs)
         self._last_selected_line = None
 
+    def _view_is_preview(self, view):
+        """
+        Returns True if view is in preview mode (e.g. "Goto Anything").
+        """
+        window_views = (window_view.id()
+                        for window_view in sublime.active_window().views())
+        return bool(view.id() not in window_views)
+
     def _lintOnLoad(self, view, retry=False):
         """
         Some code to lint file on load.
@@ -448,6 +456,10 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         if view.window().active_view().id() != view.id():
             debug("view is not active anymore, forget about lint")
             return  # not active anymore, don't lint it!
+
+        if self._view_is_preview(view):
+            sublime.set_timeout(lambda: self._lintOnLoad(view, True), 300)
+            return  # wait before view will became normal
 
         view.run_command("flake8_lint")
 
