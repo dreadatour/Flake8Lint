@@ -64,10 +64,15 @@ def skip_line(line):
     Check if we need to skip line check.
     Line must ends with '# noqa' or '# NOQA' comment.
     """
-    if line.strip().lower().endswith('# noqa'):
+    def _noqa(line):
+        return line.strip().lower().endswith('# noqa')
+    skip = _noqa(line)
+    if not skip:
+        i = line.rfind(' #')
+        skip = _noqa(line[:i]) if i > 0 else False
+    if skip:
         debug("skip line '{0}'".format(line))
-        return True
-    return False
+    return skip
 
 
 def get_current_line(view):
