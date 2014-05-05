@@ -241,9 +241,14 @@ def lint_external(filename, settings, interpreter, linter):
     # place for warnings =)
     warnings = []
 
+    startupinfo = None
+    if os.name == 'nt':
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     # run subprocess
     proc = subprocess.Popen(arguments, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT)
+                            stderr=subprocess.STDOUT,
+                            startupinfo=startupinfo)
 
     # parse STDOUT for warnings and errors
     for line in proc.stdout:
