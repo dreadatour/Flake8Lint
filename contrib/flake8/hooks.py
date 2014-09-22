@@ -7,12 +7,6 @@ from subprocess import Popen, PIPE
 import shutil
 from tempfile import mkdtemp
 try:
-    # The 'demandimport' breaks pyflakes and flake8._pyflakes
-    from mercurial import demandimport
-    demandimport.disable()
-except ImportError:
-    pass
-try:
     from configparser import ConfigParser
 except ImportError:   # Python 2
     from ConfigParser import ConfigParser
@@ -55,11 +49,8 @@ def git_hook(complexity=-1, strict=False, ignore=None, lazy=False):
 
     files_modified = [f for f in files_modified if f.endswith('.py')]
 
-    flake8_style = get_style_guide(
-        parse_argv=True,
-        config_file=DEFAULT_CONFIG,
-        **options
-        )
+    flake8_style = get_style_guide(config_file=DEFAULT_CONFIG, paths=['.'],
+                                   **options)
 
     # Copy staged versions to temporary directory
     tmpdir = mkdtemp()
@@ -103,9 +94,7 @@ def hg_hook(ui, repo, **kwargs):
     complexity = ui.config('flake8', 'complexity', default=-1)
     strict = ui.configbool('flake8', 'strict', default=True)
     ignore = ui.config('flake8', 'ignore', default=None)
-    config = ui.config('flake8', 'config', default=True)
-    if config is True:
-        config = DEFAULT_CONFIG
+    config = ui.config('flake8', 'config', default=DEFAULT_CONFIG)
 
     paths = _get_files(repo, **kwargs)
 
@@ -117,7 +106,7 @@ def hg_hook(ui, repo, **kwargs):
     if complexity > -1:
         options['max_complexity'] = complexity
 
-    flake8_style = get_style_guide(parse_argv=True, config_file=config,
+    flake8_style = get_style_guide(config_file=config, paths=['.'],
                                    **options)
     report = flake8_style.check_files(paths)
 
@@ -136,10 +125,10 @@ def run(command, raw_output=False, decode=True):
     # endswith method. That should work but might still fail horribly.
     if hasattr(stdout, 'decode'):
         if decode:
-            stdout = stdout.decode()
+            stdout = stdout.decode('utf-8')
     if hasattr(stderr, 'decode'):
         if decode:
-            stderr = stderr.decode()
+            stderr = stderr.decode('utf-8')
     if not raw_output:
         stdout = [line.strip() for line in stdout.splitlines()]
         stderr = [line.strip() for line in stderr.splitlines()]
@@ -194,7 +183,7 @@ if __name__ == '__main__':
 def _install_hg_hook(path):
     if not os.path.isfile(path):
         # Make the file so we can avoid IOError's
-        open(path, 'w+').close()
+        open(path, 'w').close()
 
     c = ConfigParser()
     c.readfp(open(path, 'r'))
@@ -217,12 +206,13 @@ def _install_hg_hook(path):
         c.set('flake8', 'strict', os.getenv('FLAKE8_STRICT', False))
 
     if not c.has_option('flake8', 'ignore'):
-        c.set('flake8', 'ignore', os.getenv('FLAKE8_IGNORE'))
+        c.set('flake8', 'ignore', os.getenv('FLAKE8_IGNORE', ''))
 
     if not c.has_option('flake8', 'lazy'):
         c.set('flake8', 'lazy', os.getenv('FLAKE8_LAZY', False))
 
-    c.write(open(path, 'w+'))
+    with open(path, 'w') as fd:
+        c.write(fd)
 
 
 def install_hook():
@@ -238,7 +228,9 @@ def install_hook():
 
     status = 0
     if 'git' in vcs:
-        with open(vcs, 'w+') as fd:
+        if os.path.exists(vcs):
+            sys.exit('Error: hook already exists (%s)' % vcs)
+        with open(vcs, 'w') as fd:
             fd.write(git_hook_file)
         # rwxr--r--
         os.chmod(vcs, stat.S_IRWXU | stat.S_IRGRP | stat.S_IROTH)

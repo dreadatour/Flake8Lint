@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import os
 
 try:
     import ast
@@ -41,6 +42,16 @@ def is_flag(val):
     """Guess if the value could be an on/off toggle"""
     val = str(val)
     return val.upper() in ('1', '0', 'F', 'T', 'TRUE', 'FALSE', 'ON', 'OFF')
+
+
+def is_windows():
+    """Determine if the system is Windows."""
+    return os.name == 'nt'
+
+
+def is_using_stdin(paths):
+    """Determine if we're running checks on stdin."""
+    return '-' in paths
 
 
 def flag_on(val):

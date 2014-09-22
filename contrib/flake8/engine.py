@@ -5,7 +5,8 @@ import platform
 import pep8
 
 from flake8 import __version__
-from flake8.util import OrderedSet
+from flake8.reporter import multiprocessing, BaseQReport, QueueReport
+from flake8.util import OrderedSet, is_windows, is_using_stdin
 
 _flake8_noqa = re.compile(r'flake8[:=]\s*noqa', re.I).search
 
@@ -47,6 +48,17 @@ def get_parser():
             parser.remove_option(opt)
         except ValueError:
             pass
+
+    if multiprocessing:
+        try:
+            auto = multiprocessing.cpu_count() or 1
+        except NotImplementedError:
+            auto = 1
+        parser.config_options.append('jobs')
+        parser.add_option('-j', '--jobs', type='string', default='auto',
+                          help="number of jobs to run simultaneously, "
+                          "or 'auto'. This is ignored on Windows.")
+
     parser.add_option('--exit-zero', action='store_true',
                       help="exit with code 0 even if there are errors")
     for parser_hook in parser_hooks:
@@ -58,8 +70,6 @@ def get_parser():
 
 
 class StyleGuide(pep8.StyleGuide):
-    # Backward compatibility pep8 <= 1.4.2
-    checker_class = pep8.Checker
 
     def input_file(self, filename, lines=None, expected=None, line_offset=0):
         """Run all checks on a Python source file."""
@@ -81,6 +91,27 @@ def get_style_guide(**kwargs):
     options = styleguide.options
     for options_hook in options_hooks:
         options_hook(options)
+
+    if options.diff:
+        options.jobs = None
+
+    force_disable_jobs = is_windows() or is_using_stdin(styleguide.paths)
+
+    if multiprocessing and options.jobs and not force_disable_jobs:
+        if options.jobs.isdigit():
+            n_jobs = int(options.jobs)
+        else:
+            try:
+                n_jobs = multiprocessing.cpu_count()
+            except NotImplementedError:
+                n_jobs = 1
+        if n_jobs > 1:
+            options.jobs = n_jobs
+            reporter = BaseQReport if options.quiet else QueueReport
+            report = styleguide.init_report(reporter)
+            report.input_file = styleguide.input_file
+            styleguide.runner = report.task_queue.put
+
     return styleguide
 
 
