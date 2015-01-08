@@ -146,6 +146,8 @@ def load_flake8_config(filename, global_config=False, project_config=False):
             ('max_line_length', 'pep8_max_line_length', 'int')
         )
         for config, plugin, option_type in options:
+            if not parser.has_option('flake8', config):
+                config = config.replace('_', '-')
             if parser.has_option('flake8', config):
                 if option_type == 'list':
                     option_value = parser.get('flake8', config).strip()
