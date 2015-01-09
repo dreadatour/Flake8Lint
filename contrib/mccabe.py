@@ -5,6 +5,7 @@
 """
 from __future__ import with_statement
 
+import codecs
 import optparse
 import sys
 from collections import defaultdict
@@ -275,7 +276,7 @@ def get_code_complexity(code, threshold=7, filename='stdin'):
 
 def get_module_complexity(module_path, threshold=7):
     """Returns the complexity of a module"""
-    with open(module_path, "rU") as mod:
+    with codecs.open(module_path, "rU", "utf-8") as mod:
         code = mod.read()
     return get_code_complexity(code, threshold, filename=module_path)
 

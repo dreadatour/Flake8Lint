@@ -1,7 +1,12 @@
-from flake8 import engine, util, __version__
-import pep8
+from __future__ import with_statement
+
 import unittest
-import mock
+try:
+    from unittest import mock
+except ImportError:
+    import mock  # < PY33
+
+from flake8 import engine, util, __version__, reporter
 
 
 class TestEngine(unittest.TestCase):
@@ -32,6 +37,7 @@ class TestEngine(unittest.TestCase):
         m = mock.Mock()
         with mock.patch('flake8.engine.StyleGuide') as StyleGuide:
             with mock.patch('flake8.engine.get_parser') as get_parser:
+                StyleGuide.return_value.options.jobs = '42'
                 get_parser.return_value = (m, [])
                 engine.get_style_guide(foo='bar')
                 get_parser.assert_called_once_with()
@@ -39,10 +45,10 @@ class TestEngine(unittest.TestCase):
 
     def test_register_extensions(self):
         with mock.patch('pep8.register_check') as register_check:
-            registered_extensions = engine._register_extensions()
-            self.assertTrue(isinstance(registered_extensions[0], util.OrderedSet))
-            self.assertTrue(len(registered_extensions[0]) > 0)
-            for i in registered_extensions[1:]:
+            registered_exts = engine._register_extensions()
+            self.assertTrue(isinstance(registered_exts[0], util.OrderedSet))
+            self.assertTrue(len(registered_exts[0]) > 0)
+            for i in registered_exts[1:]:
                 self.assertTrue(isinstance(i, list))
             register_check.assert_called()
 
@@ -62,8 +68,7 @@ class TestEngine(unittest.TestCase):
         gpv.assert_called()
         pgp.assert_called_once_with(
             'flake8',
-            '%s (pyflakes: 0.7, mccabe: 0.2) Python Version' % __version__
-            )
+            '%s (pyflakes: 0.7, mccabe: 0.2) Python Version' % __version__)
         m.remove_option.assert_called()
         m.add_option.assert_called()
         self.assertEqual(parser, m)
@@ -76,6 +81,18 @@ class TestEngine(unittest.TestCase):
         # Silly test but it will provide 100% test coverage
         # Also we can never be sure (without reconstructing the string
         # ourselves) what system we may be testing on.
+
+    def test_windows_disables_jobs(self):
+        with mock.patch('flake8.engine.is_windows') as is_windows:
+            is_windows.return_value = True
+            guide = engine.get_style_guide()
+            assert isinstance(guide, reporter.BaseQReport) is False
+
+    def test_stdin_disables_jobs(self):
+        with mock.patch('flake8.engine.is_using_stdin') as is_using_stdin:
+            is_using_stdin.return_value = True
+            guide = engine.get_style_guide()
+            assert isinstance(guide, reporter.BaseQReport) is False
 
 if __name__ == '__main__':
     unittest.main()
