@@ -6,3 +6,6 @@ Python Flake8 Lint 1.4.0 Release Notes
 - add new choices for 'gutter_marks' option: show gutter marks pretty icons
 
 - add options for setup detected conditions highlight color
+
+
+For details, please visit: https://github.com/dreadatour/Flake8Lint
