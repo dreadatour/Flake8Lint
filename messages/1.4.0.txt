@@ -1,0 +1,6 @@
+Python Flake8 Lint 1.4.0 Release Notes
+======================================
+
+- add new option 'set_ruler_guide': set ruler guide based on max line length setting
+
+- add new choices for 'gutter_marks' option: show gutter marks pretty icons

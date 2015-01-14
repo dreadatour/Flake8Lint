@@ -1,0 +1,4 @@
+Thank you for installing Python Flake8 Lint!
+
+For details, please visit:
+https://github.com/dreadatour/Flake8Lint
