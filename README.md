@@ -55,6 +55,9 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	// run flake8 lint on file loading
 	"lint_on_load": false,
 
+	// set ruler guide based on max line length setting
+	"set_ruler_guide": false,
+
 	// popup a dialog of detected conditions?
 	"popup": true,
 	// highlight detected conditions?

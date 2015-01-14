@@ -40,6 +40,15 @@ def debug(msg):
     print("[Flake8Lint DEBUG] {0}".format(msg))
 
 
+def error(msg):
+    """
+    Print error info to ST python console if debug is enabled.
+    """
+    if not debug_enabled:
+        return
+    print("[Flake8Lint ERROR] {0}".format(msg))
+
+
 def plugin_loaded():
     """
     Callback for 'plugin was loaded' event.
@@ -503,10 +512,37 @@ class Flake8LintBackground(sublime_plugin.EventListener):
 
         view.run_command("flake8_lint")
 
+    def _set_ruler_guide(self, view):
+        """
+        Set view ruler guide.
+        """
+        # set guide only for Python files
+        if not view.match_selector(0, 'source.python'):
+            return
+
+        # check if 'set_ruler_guide' option is turned on
+        if not settings.get('set_ruler_guide', False):
+            return
+
+        debug("set view ruler guide")
+
+        view_settings = get_view_settings(view)
+        if view_settings and 'pep8_max_line_length' in view_settings:
+            try:
+                max_line_length = int(view_settings['pep8_max_line_length'])
+            except (TypeError, ValueError):
+                error("can't parse 'pep8_max_line_length' setting")
+                return
+            else:
+                view.settings().set('rulers', [max_line_length])
+                debug("view ruler guide is set to {0}".format(max_line_length))
+
     def on_load(self, view):
         """
         Do lint on file load.
         """
+        self._set_ruler_guide(view)
+
         if view.is_scratch():
             debug("skip lint because view is scratch")
             return  # do not lint scratch views
