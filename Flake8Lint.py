@@ -15,9 +15,9 @@ try:
 except (ValueError, SystemError):
     from lint import lint, lint_external, skip_file, load_flake8_config  # noqa
 
-
 settings = None
 debug_enabled = False
+
 PROJECT_SETTINGS_KEYS = (
     'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'complexity',
     'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
@@ -28,7 +28,14 @@ FLAKE8_SETTINGS_KEYS = (
 )
 
 ERRORS_IN_VIEWS = {}
-FLAKE_DIR = os.path.dirname(os.path.abspath(__file__))
+PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
+
+ERROR_LEVELS = ('critical', 'error', 'warning')
+
+MARK_TYPES = ('dot', 'circle', 'bookmark', 'cross')
+MARK_THEMES = ('alpha', 'bright', 'dark', 'hard', 'simple')
+MARK_THEMES_DIR = os.path.join('Packages', os.path.basename(PLUGIN_DIR),
+                               'gutter-themes')
 
 
 def debug(msg):
@@ -175,6 +182,28 @@ def filename_match(filename, patterns):
     return False
 
 
+def get_gutter_mark(settings):
+    """
+    Returns gutter mark icon or empty string if marks are disabled.
+    """
+    mark_type = str(settings.get('gutter_marks', ''))
+
+    if mark_type in MARK_TYPES:
+        return mark_type
+
+    if mark_type.startswith('theme-'):
+        theme = mark_type[6:]
+        if theme in MARK_THEMES:
+            debug("gutter mark: '{0}'".format(
+                os.path.join(MARK_THEMES_DIR, '{0}-{{0}}.png'.format(theme))
+            ))
+            return os.path.join(MARK_THEMES_DIR, '{0}-{{0}}.png'.format(theme))
+        else:
+            debug("unknown gutter mark theme: '{0}'".format(mark_type))
+
+    return ''
+
+
 class Flake8NextErrorCommand(sublime_plugin.TextCommand):
     """
     Jump to next lint error command.
@@ -246,7 +275,8 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         # - we need to clear regions with fixed previous errors
         # - is user will turn off 'highlight' in settings and then run lint
         # - user adds file with errors to 'ignore_files' list
-        self.view.erase_regions('flake8-errors')
+        for level in ERROR_LEVELS:
+            self.view.erase_regions('flake8lint-{0}'.format(level))
 
         # we need to always erase status too. same situations.
         self.view.erase_status('flake8-tip')
@@ -307,7 +337,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 )
 
             # build linter path for Packages Manager installation
-            linter = os.path.join(FLAKE_DIR, 'lint.py')
+            linter = os.path.join(PLUGIN_DIR, 'lint.py')
             debug("linter file: {0}".format(linter))
 
             # build linter path for installation from git
@@ -347,16 +377,14 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         is_highlight = settings.get('highlight', False)
         is_popup = settings.get('popup', True)
 
-        mark = settings.get('gutter_marks', '')
-        if mark not in ('', 'dot', 'circle', 'bookmark', 'cross'):
-            mark = ''
+        gutter_mark = get_gutter_mark(settings)
 
         debug("'select' setting: {0}".format(select))
         debug("'ignore' setting: {0}".format(ignore))
         debug("'is_highlight' setting: {0}".format(is_highlight))
         debug("'is_popup' setting: {0}".format(is_popup))
 
-        regions = []
+        regions = {'critical': [], 'error': [], 'warning': []}
         view_errors = {}
         errors_list_filtered = []
 
@@ -403,7 +431,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 errors_list_filtered.append(e)
 
             # prepare errors regions
-            if is_highlight or mark:
+            if is_highlight or gutter_mark:
                 # prepare line
                 line_text = full_line_text.rstrip('\r\n')
                 line_length = len(line_text)
@@ -418,7 +446,13 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                     start = text_point + e[1]
                 # TODO: add another tricks like 'E303 too many blank lines'
 
-                regions.append(sublime.Region(start, end))
+                if code[0] == 'F':
+                    regions_list = regions['critical']
+                elif code[0] == 'E':
+                    regions_list = regions['error']
+                else:
+                    regions_list = regions['warning']
+                regions_list.append(sublime.Region(start, end))
 
             # save errors for each line in view to special dict
             view_errors.setdefault(current_line, []).append(error_text)
@@ -430,15 +464,25 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
         # highlight error regions if defined
         if is_highlight:
-            debug("highlight errors in view (regions)")
-            self.view.add_regions('flake8-errors', regions,
-                                  'invalid.deprecated', mark,
-                                  sublime.DRAW_OUTLINED)
-        elif mark:
-            debug("highlight errors in view (marks)")
-            self.view.add_regions('flake8-errors', regions,
-                                  'invalid.deprecated', mark,
-                                  sublime.HIDDEN)
+            for level in ERROR_LEVELS:
+                if not regions[level]:
+                    continue
+                debug("highlight errors in view (regions: {0})".format(level))
+                self.view.add_regions(
+                    'flake8lint-{0}'.format(level), regions[level],
+                    'invalid.deprecated', gutter_mark.format(level),
+                    sublime.DRAW_OUTLINED
+                )
+        elif gutter_mark:
+            for level in ERROR_LEVELS:
+                if not regions[level]:
+                    continue
+                debug("highlight errors in view (marks: {0})".format(level))
+                self.view.add_regions(
+                    'flake8lint-{0}'.format(level), regions[level],
+                    'invalid.deprecated', gutter_mark.format(level),
+                    sublime.HIDDEN
+                )
 
         if is_popup:
             debug("show popup window with errors")

@@ -65,6 +65,7 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 
 	// show a mark in the gutter on all lines with errors/warnings:
 	// - "dot", "circle" or "bookmark" to show marks
+	// - "theme-alpha", "theme-bright", "theme-dark", "theme-hard" or "theme-simple" to show icon marks
 	// - "" (empty string) to do not show marks
 	"gutter_marks": "",
 
