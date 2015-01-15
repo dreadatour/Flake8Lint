@@ -36,8 +36,11 @@ MARK_TYPES = ('dot', 'circle', 'bookmark', 'cross')
 MARK_THEMES = ('alpha', 'bright', 'dark', 'hard', 'simple')
 # ST does not expect platform specific paths here, but only
 # forward-slash separated paths relative to "Packages"
-MARK_THEMES_DIR = '/'.join(['Packages', os.path.basename(PLUGIN_DIR),
-                            'gutter-themes'])
+
+MARK_THEMES_PATHS = ['Packages', os.path.basename(PLUGIN_DIR), 'gutter-themes']
+if int(sublime.version()) < 3014:
+    MARK_THEMES_PATHS = [os.path.pardir, os.path.pardir] + MARK_THEMES_PATHS
+MARK_THEMES_DIR = '/'.join(MARK_THEMES_PATHS)
 
 
 settings = None
@@ -75,15 +78,17 @@ def plugin_loaded():
         debug_enabled = True
         log("plugin was loaded")
 
-    view = sublime.active_window().active_view()
-    if view:
-        if settings.get('set_ruler_guide', False):
-            set_ruler_guide(view)
-        if settings.get('lint_on_load', False):
-            log("run lint by 'on_load' hook")
-            view.run_command("flake8_lint")
-        else:
-            log("skip lint by 'on_load' hook due to plugin settings")
+    window = sublime.active_window()
+    if window:
+        view = window.active_view()
+        if view:
+            if settings.get('set_ruler_guide', False):
+                set_ruler_guide(view)
+            if settings.get('lint_on_load', False):
+                log("run lint by 'on_load' hook")
+                view.run_command("flake8_lint")
+            else:
+                log("skip lint by 'on_load' hook due to plugin settings")
 
 
 # Backwards compatibility with Sublime 2
@@ -213,7 +218,10 @@ def get_gutter_mark(settings):
         if theme in MARK_THEMES:
             # ST does not expect platform specific paths here, but only
             # forward-slash separated paths relative to "Packages"
-            return '/'.join([MARK_THEMES_DIR, '{0}-{{0}}.png'.format(theme)])
+            mark = '/'.join([MARK_THEMES_DIR, '{0}-{{0}}'.format(theme)])
+            if int(sublime.version()) >= 3014:
+                mark += '.png'
+            return mark
         else:
             log("unknown gutter mark theme: '{0}'".format(mark_type))
 

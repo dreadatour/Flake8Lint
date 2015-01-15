@@ -72,7 +72,7 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	// - "dot", "circle" or "bookmark" to show marks
 	// - "theme-alpha", "theme-bright", "theme-dark", "theme-hard" or "theme-simple" to show icon marks
 	// - "" (empty string) to do not show marks
-	"gutter_marks": "",
+	"gutter_marks": "theme-simple",
 
 	// report successfull (passed) lint
 	"report_on_success": false,

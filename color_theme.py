@@ -167,4 +167,7 @@ def update_color_scheme(settings):
         sublime.save_settings('Preferences.sublime-settings')
 
     # run async
-    sublime.set_timeout_async(generate_color_scheme_async, 0)
+    if hasattr(sublime, 'set_timeout_async'):  # ST3
+        sublime.set_timeout_async(generate_color_scheme_async, 0)
+    else:  # ST2
+        sublime.set_timeout(generate_color_scheme_async, 0)
