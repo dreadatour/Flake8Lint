@@ -62,6 +62,82 @@ def log(msg, level=None):
     print("[Flake8Lint {0}] {1}".format(level.upper(), msg))
 
 
+def view_is_preview(view):
+    """
+    Returns True if view is in preview mode (e.g. "Goto Anything").
+    """
+    window_views = (
+        window_view.id() for window_view in sublime.active_window().views()
+    )
+    return bool(view.id() not in window_views)
+
+
+def do_lint_on_load(view, ruler_is_set=False):
+    """
+    Do lint on load.
+    """
+    if not ruler_is_set:
+        if settings.get('set_ruler_guide', False):
+            set_ruler_guide(view)
+        else:
+            log("do not set ruler guide due to plugin settings")
+
+    if view_is_preview(view):
+        sublime.set_timeout(lambda: do_lint_on_load(view, True), 300)
+        return
+
+    if view.is_scratch():
+        log("skip lint because view is scratch")
+        return  # do not lint scratch views
+
+    if settings.get('lint_on_load', False):
+        log("run lint by 'on_load' hook")
+        view.run_command("flake8_lint")
+    else:
+        log("skip lint by 'on_load' hook due to plugin settings")
+
+
+def lint_on_load(view=None, retry=False):
+    """
+    Wait until file was loaded and run lint if needed.
+    """
+    we_need_to_wait_for_file_load = (
+        settings.get('set_ruler_guide', False)
+        or
+        settings.get('lint_on_load', False)
+    )
+    if not we_need_to_wait_for_file_load:
+        return
+
+    log("wait until file was loaded")
+    if not retry:  # first run - wait a little bit
+        sublime.set_timeout(lambda: lint_on_load(view, True), 100)
+        return
+
+    if view is None:
+        window = sublime.active_window()
+        if not window:
+            return
+
+        view = window.active_view()
+        if not view:
+            return
+
+    if view.is_loading():  # view is still running - wait again
+        sublime.set_timeout(lambda: lint_on_load(view, True), 100)
+        return
+
+    if view.window() is None:  # view window is not initialized - wait...
+        sublime.set_timeout(lambda: lint_on_load(view, True), 100)
+        return
+
+    if view.window().active_view().id() != view.id():
+        log("view is not active anymore, forget about lint")
+        return  # not active anymore, don't lint it!
+
+    do_lint_on_load(view)
+
+
 def plugin_loaded():
     """
     Callback for 'plugin was loaded' event.
@@ -72,23 +148,12 @@ def plugin_loaded():
 
     settings = sublime.load_settings("Flake8Lint.sublime-settings")
 
-    update_color_scheme(settings)
-
     if settings.get('debug', False):
         debug_enabled = True
         log("plugin was loaded")
 
-    window = sublime.active_window()
-    if window:
-        view = window.active_view()
-        if view:
-            if settings.get('set_ruler_guide', False):
-                set_ruler_guide(view)
-            if settings.get('lint_on_load', False):
-                log("run lint by 'on_load' hook")
-                view.run_command("flake8_lint")
-            else:
-                log("skip lint by 'on_load' hook due to plugin settings")
+    update_color_scheme(settings)
+    lint_on_load()
 
 
 # Backwards compatibility with Sublime 2
@@ -578,64 +643,11 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         super(Flake8LintBackground, self).__init__(*args, **kwargs)
         self._last_selected_line = None
 
-    def _view_is_preview(self, view):
-        """
-        Returns True if view is in preview mode (e.g. "Goto Anything").
-        """
-        window_views = (window_view.id()
-                        for window_view in sublime.active_window().views())
-        return bool(view.id() not in window_views)
-
-    def _wait_for_load(self, view, retry=False):
-        """
-        Wait until file was loaded.
-        """
-        log("wait until file was loaded")
-        if not retry:  # first run - wait a little bit
-            sublime.set_timeout(lambda: self._wait_for_load(view, True), 100)
-            return
-
-        if view.is_loading():  # view is still running - wait again
-            sublime.set_timeout(lambda: self._wait_for_load(view, True), 100)
-            return
-
-        if view.window() is None:  # view window is not initialized - wait...
-            sublime.set_timeout(lambda: self._wait_for_load(view, True), 100)
-            return
-
-        if view.window().active_view().id() != view.id():
-            log("view is not active anymore, forget about lint")
-            return  # not active anymore, don't lint it!
-
-        if self._view_is_preview(view):
-            sublime.set_timeout(lambda: self._wait_for_load(view, True), 300)
-            return  # wait before view will became normal
-
-        if view.is_scratch():
-            log("skip lint because view is scratch")
-            return  # do not lint scratch views
-
-        if settings.get('set_ruler_guide', False):
-            set_ruler_guide(view)
-
-        if settings.get('lint_on_load', False):
-            log("run lint by 'on_load' hook")
-            view.run_command("flake8_lint")
-        else:
-            log("skip lint by 'on_load' hook due to plugin settings")
-
     def on_load(self, view):
         """
         Do lint on file load.
         """
-        we_need_to_wait_for_file_load = (
-            settings.get('set_ruler_guide', False)
-            or
-            settings.get('lint_on_load', False)
-        )
-
-        if we_need_to_wait_for_file_load:
-            self._wait_for_load(view)
+        lint_on_load(view)
 
     def on_post_save(self, view):
         """
