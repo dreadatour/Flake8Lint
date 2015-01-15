@@ -7,6 +7,7 @@ for better visibility.
 
 Based on https://github.com/JulianEberius/SublimePythonIDE
 """
+import codecs
 import os
 from xml.etree import ElementTree
 
@@ -99,6 +100,7 @@ def update_color_scheme(settings):
         'error': settings.get('color_error'),
         'warning': settings.get('color_warning'),
     }
+    sublime3 = int(sublime.version()) >= 3000
 
     def generate_color_scheme_async():
         # find and parse current theme
@@ -108,7 +110,13 @@ def update_color_scheme(settings):
         if scheme is None:
             return
 
-        scheme_text = sublime.load_resource(scheme)
+        if sublime3:
+            scheme_text = sublime.load_resource(scheme)
+        else:
+            scheme = scheme[9:]
+            with open(os.path.join(sublime.packages_path(), scheme)) as f:
+                scheme_text = f.read()
+
         plist = ElementTree.XML(scheme_text)
         dicts = plist.find('./dict/array')
 
@@ -156,9 +164,14 @@ def update_color_scheme(settings):
         new_name = original_name + ' (Flake8Lint).tmTheme'
         scheme_path = os.path.join(sublime.packages_path(), 'User', new_name)
 
-        with open(scheme_path, 'w', encoding='utf8') as f:
-            f.write(COLOR_SCHEME_PREAMBLE)
-            f.write(ElementTree.tostring(plist, encoding='unicode'))
+        if sublime3:
+            with open(scheme_path, 'w', encoding='utf-8') as f:
+                f.write(COLOR_SCHEME_PREAMBLE)
+                f.write(ElementTree.tostring(plist, encoding='unicode'))
+        else:
+            with codecs.open(scheme_path, 'w', encoding='utf-8') as f:
+                f.write(COLOR_SCHEME_PREAMBLE)
+                f.write(ElementTree.tostring(plist, encoding='utf-8'))
 
         # ST does not expect platform specific paths here, but only
         # forward-slash separated paths relative to "Packages"
@@ -167,7 +180,7 @@ def update_color_scheme(settings):
         sublime.save_settings('Preferences.sublime-settings')
 
     # run async
-    if hasattr(sublime, 'set_timeout_async'):  # ST3
+    if sublime3:
         sublime.set_timeout_async(generate_color_scheme_async, 0)
-    else:  # ST2
-        sublime.set_timeout(generate_color_scheme_async, 0)
+    else:
+        sublime.set_timeout(generate_color_scheme_async, 100)
