@@ -5,7 +5,6 @@
 """
 from __future__ import with_statement
 
-import codecs
 import optparse
 import sys
 from collections import defaultdict
@@ -15,7 +14,7 @@ try:
 except ImportError:   # Python 2.5
     from flake8.util import ast, iter_child_nodes
 
-__version__ = '0.2.1'
+__version__ = '0.3'
 
 
 class ASTVisitor(object):
@@ -68,6 +67,8 @@ class PathGraph(object):
 
     def connect(self, n1, n2):
         self.nodes[n1].append(n2)
+        # Ensure that the destination node is always counted.
+        self.nodes[n2] = []
 
     def to_dot(self):
         print('subgraph {')
@@ -161,34 +162,37 @@ class PathGraphingAstVisitor(ASTVisitor):
 
     def visitLoop(self, node):
         name = "Loop %d" % node.lineno
-
-        if self.graph is None:
-            # global loop
-            self.graph = PathGraph(name, name, node.lineno)
-            pathnode = PathNode(name)
-            self.tail = pathnode
-            self.dispatch_list(node.body)
-            self.graphs["%s%s" % (self.classname, name)] = self.graph
-            self.reset()
-        else:
-            pathnode = self.appendPathNode(name)
-            self.tail = pathnode
-            self.dispatch_list(node.body)
-            bottom = PathNode("", look='point')
-            self.graph.connect(self.tail, bottom)
-            self.graph.connect(pathnode, bottom)
-            self.tail = bottom
-
-        # TODO: else clause in node.orelse
+        self._subgraph(node, name)
 
     visitFor = visitWhile = visitLoop
 
     def visitIf(self, node):
         name = "If %d" % node.lineno
-        pathnode = self.appendPathNode(name)
+        self._subgraph(node, name)
+
+    def _subgraph(self, node, name, extra_blocks=()):
+        """create the subgraphs representing any `if` and `for` statements"""
+        if self.graph is None:
+            # global loop
+            self.graph = PathGraph(name, name, node.lineno)
+            pathnode = PathNode(name)
+            self._subgraph_parse(node, pathnode, extra_blocks)
+            self.graphs["%s%s" % (self.classname, name)] = self.graph
+            self.reset()
+        else:
+            pathnode = self.appendPathNode(name)
+            self._subgraph_parse(node, pathnode, extra_blocks)
+
+    def _subgraph_parse(self, node, pathnode, extra_blocks):
+        """parse the body and any `else` block of `if` and `for` statements"""
         loose_ends = []
+        self.tail = pathnode
         self.dispatch_list(node.body)
         loose_ends.append(self.tail)
+        for extra in extra_blocks:
+            self.tail = pathnode
+            self.dispatch_list(extra.body)
+            loose_ends.append(self.tail)
         if node.orelse:
             self.tail = pathnode
             self.dispatch_list(node.orelse)
@@ -203,19 +207,9 @@ class PathGraphingAstVisitor(ASTVisitor):
 
     def visitTryExcept(self, node):
         name = "TryExcept %d" % node.lineno
-        pathnode = self.appendPathNode(name)
-        loose_ends = []
-        self.dispatch_list(node.body)
-        loose_ends.append(self.tail)
-        for handler in node.handlers:
-            self.tail = pathnode
-            self.dispatch_list(handler.body)
-            loose_ends.append(self.tail)
-        if pathnode:
-            bottom = PathNode("", look='point')
-            for le in loose_ends:
-                self.graph.connect(le, bottom)
-            self.tail = bottom
+        self._subgraph(node, name, extra_blocks=node.handlers)
+
+    visitTry = visitTryExcept
 
     def visitWith(self, node):
         name = "With %d" % node.lineno
@@ -250,7 +244,7 @@ class McCabeChecker(object):
         visitor = PathGraphingAstVisitor()
         visitor.preorder(self.tree, visitor)
         for graph in visitor.graphs.values():
-            if graph.complexity() >= self.max_complexity:
+            if graph.complexity() > self.max_complexity:
                 text = self._error_tmpl % (graph.entity, graph.complexity())
                 yield graph.lineno, 0, text, type(self)
 
@@ -276,18 +270,20 @@ def get_code_complexity(code, threshold=7, filename='stdin'):
 
 def get_module_complexity(module_path, threshold=7):
     """Returns the complexity of a module"""
-    with codecs.open(module_path, "rU", "utf-8") as mod:
+    with open(module_path, "rU") as mod:
         code = mod.read()
     return get_code_complexity(code, threshold, filename=module_path)
 
 
-def main(argv):
+def main(argv=None):
+    if argv is None:
+        argv = sys.argv[1:]
     opar = optparse.OptionParser()
     opar.add_option("-d", "--dot", dest="dot",
                     help="output a graphviz dot file", action="store_true")
     opar.add_option("-m", "--min", dest="threshold",
                     help="minimum complexity for output", type="int",
-                    default=2)
+                    default=1)
 
     options, args = opar.parse_args(argv)
 
@@ -300,7 +296,7 @@ def main(argv):
     if options.dot:
         print('graph {')
         for graph in visitor.graphs.values():
-            if graph.complexity() >= options.threshold:
+            if not options.threshold or graph.complexity() >= options.threshold:
                 graph.to_dot()
         print('}')
     else:
