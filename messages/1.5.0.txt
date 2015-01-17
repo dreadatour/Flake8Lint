@@ -1,0 +1,11 @@
+Python Flake8 Lint 1.5.0 Release Notes
+======================================
+
+- add 'pep8-naming' plugin (turned on by default), see more on pep8-naming page: https://pypi.python.org/pypi/pep8-naming
+
+- update 'pep8' version, see more on pep8 page: https://pypi.python.org/pypi/pep8
+
+- update 'mccabe' version, see more on mccabe page: https://pypi.python.org/pypi/mccabe
+
+
+For details, please visit: https://github.com/dreadatour/Flake8Lint

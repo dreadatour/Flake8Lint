@@ -24,8 +24,8 @@ except (ValueError, SystemError):
 
 
 PROJECT_SETTINGS_KEYS = (
-    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'complexity',
-    'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
+    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'naming',
+    'complexity', 'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
     'use_flake8_global_config', 'use_flake8_project_config',
 )
 FLAKE8_SETTINGS_KEYS = (

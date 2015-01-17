@@ -1,7 +1,7 @@
 Python Flake8 Lint
 ==================
 
-Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[PyFlakes](https://launchpad.net/pyflakes)** and **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)**.
+Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** and **[pep8-naming](https://github.com/flintwork/pep8-naming)**.
 
 Based on **[bitbucket.org/tarek/flake8](https://bitbucket.org/tarek/flake8)**.
 
@@ -16,6 +16,8 @@ Lint tools
 * **[PyFlakes](https://launchpad.net/pyflakes)** checks only for logical errors in programs; it does not perform any check on style.
 
 * **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** is a code complexity checker. It is quite useful to detect over-complex code. According to McCabe, anything that goes beyond 10 is too complex. See [Cyclomatic_complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity).
+
+* **[pep8-naming](https://github.com/flintwork/pep8-naming)** is a naming convention checker for Python.
 
 
 Install
@@ -97,6 +99,8 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"pyflakes": true,
 	// turn on pep8 error lint
 	"pep8": true,
+	// turn on naming error lint
+	"naming": true,
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 
@@ -158,6 +162,7 @@ You could define per-project config for "Python Flake8 Lint". Use <kbd>Project</
 			"builtins": [],
 			"pyflakes": true,
 			"pep8": true,
+			"naming": true,
 			"complexity": -1,
 			"pep8_max_line_length": 79,
 			"select": [],

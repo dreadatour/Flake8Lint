@@ -49,6 +49,8 @@
 	"pyflakes": true,
 	// turn on pep8 error lint
 	"pep8": true,
+	// turn on naming error lint
+	"naming": true,
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 
