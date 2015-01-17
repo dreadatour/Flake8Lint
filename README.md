@@ -83,7 +83,7 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"use_flake8_project_config": true,
 
 	// set python interpreter (lint files for python >= 2.7):
-	// - 'internal' for use internal Sublime Text 2 interpreter (2.6)
+	// - 'internal' for use internal Sublime Text interpreter (2.6)
 	// - 'auto' for search default system python interpreter (default value)
 	// - absolute path to python interpreter for define another one
 	//   use platform specific notation, i.e. "C:\\Anaconda\\envs\\py33\\python.exe"

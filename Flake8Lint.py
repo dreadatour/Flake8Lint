@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Flake8Lint: Sublime Text 2 plugin.
+Flake8Lint: Sublime Text plugin.
 Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 import os
@@ -429,7 +429,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         log("python interpreter: {0}".format(interpreter))
 
         if not interpreter or interpreter == 'internal':
-            # if interpreter is Sublime Text 2 internal python - lint file
+            # if interpreter is Sublime Text internal python - lint file
             log("interpreter is internal")
             self.errors_list = lint(filename, view_settings)
         else:
@@ -646,7 +646,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
 class Flake8LintBackground(sublime_plugin.EventListener):
     """
-    Listen to Siblime Text 2 events.
+    Listen to Siblime Text events.
     """
     def __init__(self, *args, **kwargs):
         super(Flake8LintBackground, self).__init__(*args, **kwargs)
