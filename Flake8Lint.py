@@ -575,6 +575,15 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         # save errors dict
         ERRORS_IN_VIEWS[self.view.id()] = view_errors
 
+        # this is fallback to default colors if our color scheme was not loaded
+        prefs = sublime.load_settings('Preferences.sublime-settings')
+        color_scheme = prefs.get('color_scheme')
+        if color_scheme and '(Flake8Lint)' in color_scheme:
+            scope_name = 'flake8lint.mark.{0}'
+        else:
+            log("use default colors because our color scheme was not loaded")
+            scope_name = 'invalid.deprecated'
+
         # highlight error regions if defined
         if is_highlight:
             for level in ERROR_LEVELS:
@@ -586,7 +595,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 self.view.add_regions(
                     'flake8lint-{0}'.format(level),
                     regions[level],
-                    'flake8lint.mark.{0}'.format(level),
+                    scope_name.format(level),
                     gutter_mark.format(level),
                     sublime.DRAW_OUTLINED
                 )
@@ -601,7 +610,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
                 self.view.add_regions(
                     'flake8lint-{0}'.format(level),
                     regions[level],
-                    'flake8lint.mark.gutter',
+                    scope_name.format('gutter'),
                     gutter_mark.format(level),
                     sublime.HIDDEN
                 )

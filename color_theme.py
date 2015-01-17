@@ -117,7 +117,11 @@ def update_color_scheme(settings):
             with open(os.path.join(sublime.packages_path(), scheme)) as f:
                 scheme_text = f.read()
 
-        plist = ElementTree.XML(scheme_text)
+        try:
+            plist = ElementTree.XML(scheme_text)
+        except ImportError:
+            return
+
         dicts = plist.find('./dict/array')
 
         # find all style infos in the theme and update if necessary
