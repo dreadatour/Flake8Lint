@@ -5,17 +5,22 @@ Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 import os
 import sys
-from fnmatch import fnmatch
 
 import sublime
 import sublime_plugin
 
 try:
-    from .lint import lint, lint_external, skip_file, load_flake8_config
     from .color_theme import update_color_scheme
+    from .helpers import (
+        filename_match, get_current_line, skip_line_lint, view_is_preview
+    )
+    from .lint import lint, lint_external, skip_file, load_flake8_config
 except (ValueError, SystemError):
-    from lint import lint, lint_external, skip_file, load_flake8_config  # noqa
-    from color_theme import update_color_scheme  # noqa
+    from color_theme import update_color_scheme
+    from helpers import (
+        filename_match, get_current_line, skip_line_lint, view_is_preview
+    )
+    from lint import lint, lint_external, skip_file, load_flake8_config
 
 
 PROJECT_SETTINGS_KEYS = (
@@ -34,12 +39,13 @@ ERROR_LEVELS = ('warning', 'error', 'critical')
 
 MARK_TYPES = ('dot', 'circle', 'bookmark', 'cross')
 MARK_THEMES = ('alpha', 'bright', 'dark', 'hard', 'simple')
-# ST does not expect platform specific paths here, but only
-# forward-slash separated paths relative to "Packages"
 
 MARK_THEMES_PATHS = ['Packages', os.path.basename(PLUGIN_DIR), 'gutter-themes']
 if int(sublime.version()) < 3014:
     MARK_THEMES_PATHS = [os.path.pardir, os.path.pardir] + MARK_THEMES_PATHS
+
+# ST does not expect platform specific paths here, but only
+# forward-slash separated paths relative to "Packages"
 MARK_THEMES_DIR = '/'.join(MARK_THEMES_PATHS)
 
 
@@ -62,134 +68,37 @@ def log(msg, level=None):
     print("[Flake8Lint {0}] {1}".format(level.upper(), msg))
 
 
-def view_is_preview(view):
+def get_view_settings(view):
     """
-    Returns True if view is in preview mode (e.g. "Goto Anything").
+    Returns dict with view settings.
+
+    Settings are taken from (see README for more info):
+    - ST plugin settings (global, user, project)
+    - flake8 settings (global, project)
     """
-    window_views = (
-        window_view.id() for window_view in sublime.active_window().views()
-    )
-    return bool(view.id() not in window_views)
+    result_settings = {}
 
+    # get settings from global (user) plugin settings
+    view_settings = view.settings().get('flake8lint') or {}
+    for param in PROJECT_SETTINGS_KEYS:
+        if param in view_settings:
+            result_settings[param] = view_settings.get(param)
+        elif settings.has(param):
+            result_settings[param] = settings.get(param)
 
-def do_lint_on_load(view, ruler_is_set=False):
-    """
-    Do lint on load.
-    """
-    if not ruler_is_set:
-        if settings.get('set_ruler_guide', False):
-            set_ruler_guide(view)
-        else:
-            log("do not set ruler guide due to plugin settings")
+    global_config = result_settings.get('use_flake8_global_config', False)
+    project_config = result_settings.get('use_flake8_project_config', False)
 
-    if view_is_preview(view):
-        sublime.set_timeout(lambda: do_lint_on_load(view, True), 300)
-        return
+    if global_config or project_config:
+        filename = os.path.abspath(view.file_name())
 
-    if view.is_scratch():
-        log("skip lint because view is scratch")
-        return  # do not lint scratch views
+        flake8_config = load_flake8_config(filename, global_config,
+                                           project_config)
+        for param in FLAKE8_SETTINGS_KEYS:
+            if param in flake8_config:
+                result_settings[param] = flake8_config.get(param)
 
-    if settings.get('lint_on_load', False):
-        log("run lint by 'on_load' hook")
-        view.run_command("flake8_lint")
-    else:
-        log("skip lint by 'on_load' hook due to plugin settings")
-
-
-def lint_on_load(view=None, retry=False):
-    """
-    Wait until file was loaded and run lint if needed.
-    """
-    we_need_to_wait_for_file_load = (
-        settings.get('set_ruler_guide', False)
-        or
-        settings.get('lint_on_load', False)
-    )
-    if not we_need_to_wait_for_file_load:
-        return
-
-    log("wait until file was loaded")
-    if not retry:  # first run - wait a little bit
-        sublime.set_timeout(lambda: lint_on_load(view, True), 100)
-        return
-
-    if view is None:
-        window = sublime.active_window()
-        if not window:
-            return
-
-        view = window.active_view()
-        if not view:
-            return
-
-    if view.is_loading():  # view is still running - wait again
-        sublime.set_timeout(lambda: lint_on_load(view, True), 100)
-        return
-
-    if view.window() is None:  # view window is not initialized - wait...
-        sublime.set_timeout(lambda: lint_on_load(view, True), 100)
-        return
-
-    if view.window().active_view().id() != view.id():
-        log("view is not active anymore, forget about lint")
-        return  # not active anymore, don't lint it!
-
-    do_lint_on_load(view)
-
-
-def plugin_loaded():
-    """
-    Callback for 'plugin was loaded' event.
-    Load settings.
-    """
-    global settings
-    global debug_enabled
-
-    settings = sublime.load_settings("Flake8Lint.sublime-settings")
-
-    if settings.get('debug', False):
-        debug_enabled = True
-        log("plugin was loaded")
-
-    update_color_scheme(settings)
-    lint_on_load()
-
-
-# Backwards compatibility with Sublime 2
-# sublime.version isn't available at module import time in Sublime 3
-if sys.version_info[0] == 2:
-    plugin_loaded()
-
-
-def skip_line(line):
-    """
-    Check if we need to skip line check.
-    Line must ends with '# noqa' or '# NOQA' comment.
-    """
-    def _noqa(line):
-        return line.strip().lower().endswith('# noqa')
-    skip = _noqa(line)
-    if not skip:
-        i = line.rfind(' #')
-        skip = _noqa(line[:i]) if i > 0 else False
-    if skip:
-        log("skip line '{0}'".format(line))
-    return skip
-
-
-def get_current_line(view):
-    """
-    Get current line (line under cursor).
-    """
-    # get view selection (exit if no selection)
-    view_selection = view.sel()
-    if not view_selection:
-        return None
-
-    point = view_selection[0].end()
-    position = view.rowcol(point)
-    return position[0]
+    return result_settings
 
 
 def clear_statusbar(view):
@@ -226,73 +135,6 @@ def update_statusbar(view):
         clear_statusbar(view)
 
 
-def get_view_settings(view):
-    """
-    Returns dict with view settings.
-
-    Settings are taken from (see README for more info):
-    - ST plugin settings (global, user, project)
-    - flake8 settings (global, project)
-    """
-    result_settings = {}
-
-    # get settings from global (user) plugin settings
-    view_settings = view.settings().get('flake8lint') or {}
-    for param in PROJECT_SETTINGS_KEYS:
-        if param in view_settings:
-            result_settings[param] = view_settings.get(param)
-        elif settings.has(param):
-            result_settings[param] = settings.get(param)
-
-    global_config = result_settings.get('use_flake8_global_config', False)
-    project_config = result_settings.get('use_flake8_project_config', False)
-
-    if global_config or project_config:
-        filename = os.path.abspath(view.file_name())
-
-        flake8_config = load_flake8_config(filename, global_config,
-                                           project_config)
-        for param in FLAKE8_SETTINGS_KEYS:
-            if param in flake8_config:
-                result_settings[param] = flake8_config.get(param)
-
-    return result_settings
-
-
-def filename_match(filename, patterns):
-    """
-    Returns True if filename is matched with patterns.
-    """
-    for path_part in filename.split(os.path.sep):
-        if any(fnmatch(path_part, pattern) for pattern in patterns):
-            return True
-    return False
-
-
-def get_gutter_mark(settings):
-    """
-    Returns gutter mark icon or empty string if marks are disabled.
-    """
-    mark_type = str(settings.get('gutter_marks', ''))
-
-    if mark_type in MARK_TYPES:
-        return mark_type
-
-    if mark_type.startswith('theme-'):
-        theme = mark_type[6:]
-        if theme in MARK_THEMES:
-            # ST does not expect platform specific paths here, but only
-            # forward-slash separated paths relative to "Packages"
-            mark = '/'.join([MARK_THEMES_DIR, '{0}-{{0}}'.format(theme)])
-            if int(sublime.version()) >= 3014:
-                mark += '.png'
-            return mark
-        else:
-            log("unknown gutter mark theme: '{0}'".format(mark_type))
-
-    return ''
-
-
 def set_ruler_guide(view):
     """
     Set view ruler guide.
@@ -313,6 +155,74 @@ def set_ruler_guide(view):
 
     view.settings().set('rulers', [max_line_length])
     log("view ruler guide is set to {0}".format(max_line_length))
+
+
+def wait_for_file_load(view, ruler_is_set=False):
+    """
+    Set rullers if needed and run file lint after file was loaded if needed.
+    """
+    if not ruler_is_set:
+        if settings.get('set_ruler_guide', False):
+            set_ruler_guide(view)
+        else:
+            log("do not set ruler guide due to plugin settings")
+
+    active_window = sublime.active_window()
+    if view_is_preview(active_window, view):
+        sublime.set_timeout(lambda: wait_for_file_load(view, True), 300)
+        return
+
+    if view.is_scratch():
+        log("skip lint because view is scratch")
+        return  # do not lint scratch views
+
+    if settings.get('lint_on_load', False):
+        log("run lint by 'on_load' hook")
+        view.run_command("flake8_lint")
+    else:
+        log("skip lint by 'on_load' hook due to plugin settings")
+
+
+def on_file_load(view=None, retry=False):
+    """
+    Run actions on file load.
+    Wait until file was finally loaded and run actions if needed.
+    """
+    we_need_to_wait_for_file_load = (
+        settings.get('set_ruler_guide', False)
+        or
+        settings.get('lint_on_load', False)
+    )
+    if not we_need_to_wait_for_file_load:
+        return
+
+    log("wait until file was loaded")
+    if not retry:  # first run - wait a little bit
+        sublime.set_timeout(lambda: on_file_load(view, True), 100)
+        return
+
+    if view is None:
+        window = sublime.active_window()
+        if not window:
+            return
+
+        view = window.active_view()
+        if not view:
+            return
+
+    if view.is_loading():  # view is still running - wait again
+        sublime.set_timeout(lambda: on_file_load(view, True), 100)
+        return
+
+    if view.window() is None:  # view window is not initialized - wait...
+        sublime.set_timeout(lambda: on_file_load(view, True), 100)
+        return
+
+    if view.window().active_view().id() != view.id():
+        log("view is not active anymore, forget about lint")
+        return  # not active anymore, don't lint it!
+
+    wait_for_file_load(view)
 
 
 class Flake8NextErrorCommand(sublime_plugin.TextCommand):
@@ -475,6 +385,29 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         elif settings.get('report_on_success', False):
             sublime.message_dialog('Flake8 Lint: SUCCESS')
 
+    def get_gutter_mark(self):
+        """
+        Returns gutter mark icon or empty string if marks are disabled.
+        """
+        mark_type = str(settings.get('gutter_marks', ''))
+
+        if mark_type in MARK_TYPES:
+            return mark_type
+
+        if mark_type.startswith('theme-'):
+            theme = mark_type[6:]
+            if theme in MARK_THEMES:
+                # ST does not expect platform specific paths here, but only
+                # forward-slash separated paths relative to "Packages"
+                mark = '/'.join([MARK_THEMES_DIR, '{0}-{{0}}'.format(theme)])
+                if int(sublime.version()) >= 3014:
+                    mark += '.png'
+                return mark
+            else:
+                log("unknown gutter mark theme: '{0}'".format(mark_type))
+
+        return ''
+
     def show_errors(self, view_settings):
         """
         Show all errors.
@@ -488,7 +421,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
         is_highlight = settings.get('highlight', False)
         is_popup = settings.get('popup', True)
 
-        gutter_mark = get_gutter_mark(settings)
+        gutter_mark = self.get_gutter_mark()
 
         log("'select' setting: {0}".format(select))
         log("'ignore' setting: {0}".format(ignore))
@@ -511,7 +444,7 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             line_text = full_line_text.strip()
 
             # skip line if 'noqa' defined
-            if skip_line(line_text):
+            if skip_line_lint(line_text):
                 log("skip error due to 'noqa' comment")
                 continue
 
@@ -656,7 +589,7 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         Do lint on file load.
         """
-        lint_on_load(view)
+        on_file_load(view)
 
     def on_post_save(self, view):
         """
@@ -690,3 +623,26 @@ class Flake8LintBackground(sublime_plugin.EventListener):
             self._last_selected_line = current_line
             log("update statusbar")
             update_statusbar(view)
+
+
+def plugin_loaded():
+    """
+    Load plugin settings when 'plugin was loaded' event appears.
+    """
+    global settings
+    global debug_enabled
+
+    settings = sublime.load_settings("Flake8Lint.sublime-settings")
+
+    if settings.get('debug', False):
+        debug_enabled = True
+        log("plugin was loaded")
+
+    update_color_scheme(settings)
+    on_file_load()
+
+
+# backwards compatibility with Sublime 2:
+# sublime.version isn't available at module import time in Sublime 3
+if sys.version_info[0] == 2:
+    plugin_loaded()
