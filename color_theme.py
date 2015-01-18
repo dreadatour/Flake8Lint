@@ -11,6 +11,13 @@ import codecs
 import os
 from xml.etree import ElementTree
 
+try:
+    from xml.parsers import expat  # noqa
+except ImportError:
+    # this is fallback for systems without python-expat module installed
+    from elementtree import SimpleXMLTreeBuilder
+    ElementTree.XMLTreeBuilder = SimpleXMLTreeBuilder.TreeBuilder
+
 import sublime
 
 
