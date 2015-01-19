@@ -198,10 +198,25 @@ def lint(filename, settings):
     if settings.get('naming', True):
         with open(filename, "rU") as f:
             lines = f.read()
-        tree = compile(lines, '', 'exec', ast.PyCF_ONLY_AST)
-        checker = pep8ext_naming.NamingChecker(tree, filename)
-        for lineno, col_offset, msg, __ in checker.run():
-            warnings.append((lineno, col_offset, msg))
+        try:
+            tree = compile(lines, '', 'exec', ast.PyCF_ONLY_AST)
+        except (SyntaxError, TypeError):
+            (exc_type, exc) = sys.exc_info()[:2]
+            if len(exc.args) > 1:
+                offset = exc.args[1]
+                if len(offset) > 2:
+                    offset = offset[1:3]
+            else:
+                offset = (1, 0)
+            warnings.append((
+                offset[0],
+                offset[1] or 0,
+                'E901 %s: %s' % (exc_type.__name__, exc.args[0])
+            ))
+        else:
+            checker = pep8ext_naming.NamingChecker(tree, filename)
+            for lineno, col_offset, msg, __ in checker.run():
+                warnings.append((lineno, col_offset, msg))
 
     # check complexity
     try:
