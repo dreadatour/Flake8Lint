@@ -563,6 +563,9 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
             return
         log("error was selected from popup window: scroll to line")
 
+        # focus view window
+        self.view.window().focus_view(self.view)
+
         # reset selection
         selection = self.view.sel()
         selection.clear()
