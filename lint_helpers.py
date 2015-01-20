@@ -47,7 +47,7 @@ def compile_file(filename):
         return
 
     try:
-        return compile(lines, filename, "exec", ast.PyCF_ONLY_AST)
+        return compile(''.join(lines), filename, "exec", ast.PyCF_ONLY_AST)
     except (SyntaxError, TypeError):
         return
 
