@@ -15,10 +15,7 @@ except ImportError:
 # and it's dependencies: 'pyflake', 'pep8' and 'mccabe'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'contrib'))
 
-import ast
-import mccabe
 import pep8
-import pep8ext_naming
 import pyflakes.api
 from pep8 import readlines
 from flake8.engine import _flake8_noqa
@@ -26,10 +23,9 @@ from flake8.engine import _flake8_noqa
 # Monkey-patching is a big evil (don't do this),
 # but hardcode is a much more bigger evil. Hate hardcore!
 try:
-    from .monkey_patching import get_code_complexity
+    from .lint_helpers import compile_file, lint_mccabe, lint_pep8_naming
 except (ValueError, SystemError):
-    from monkey_patching import get_code_complexity
-mccabe.get_code_complexity = get_code_complexity
+    from lint_helpers import compile_file, lint_mccabe, lint_pep8_naming
 
 from flake8._pyflakes import patch_pyflakes
 patch_pyflakes()
@@ -194,38 +190,21 @@ def lint(filename, settings):
         pep8style.input_file(filename)
         warnings.extend(pep8style.options.report.errors)
 
-    # lint with naming
-    if settings.get('naming', True):
-        with open(filename, "rU") as f:
-            lines = f.read()
-        try:
-            tree = compile(lines, '', 'exec', ast.PyCF_ONLY_AST)
-        except (SyntaxError, TypeError):
-            (exc_type, exc) = sys.exc_info()[:2]
-            if len(exc.args) > 1:
-                offset = exc.args[1]
-                if len(offset) > 2:
-                    offset = offset[1:3]
-            else:
-                offset = (1, 0)
-            warnings.append((
-                offset[0],
-                offset[1] or 0,
-                'E901 %s: %s' % (exc_type.__name__, exc.args[0])
-            ))
-        else:
-            checker = pep8ext_naming.NamingChecker(tree, filename)
-            for lineno, col_offset, msg, __ in checker.run():
-                warnings.append((lineno, col_offset, msg))
-
-    # check complexity
     try:
         complexity = int(settings.get('complexity', -1))
     except (TypeError, ValueError):
         complexity = -1
 
-    if complexity > -1:
-        warnings.extend(mccabe.get_module_complexity(filename, complexity))
+    if complexity > -1 or settings.get('naming', True):
+        tree = compile_file(filename)
+        if tree:
+            # check complexity
+            if complexity > -1:
+                warnings.extend(lint_mccabe(filename, tree, complexity))
+
+            # lint with naming
+            if settings.get('naming', True):
+                warnings.extend(lint_pep8_naming(filename, tree))
 
     return warnings
 
