@@ -87,7 +87,7 @@ COLOR_SCHEME_STYLES = {
     """
 }
 
-style_map = {
+STYLE_MAP = {
     'flake8lint.mark.critical': 'critical',
     'flake8lint.mark.error': 'error',
     'flake8lint.mark.warning': 'warning',
@@ -110,6 +110,9 @@ def update_color_scheme(settings):
     sublime3 = int(sublime.version()) >= 3000
 
     def generate_color_scheme_async():
+        """
+        Modify current color scheme asynchronously.
+        """
         # find and parse current theme
         prefs = sublime.load_settings('Preferences.sublime-settings')
         scheme = prefs.get('color_scheme')
@@ -137,7 +140,7 @@ def update_color_scheme(settings):
         for d in dicts.findall('./dict'):
             for c in d.getchildren():
                 if c.text and 'flake8lint' in c.text:
-                    style = style_map.get(c.text)
+                    style = STYLE_MAP.get(c.text)
                     if style not in DEFAULT_MARK_COLORS:
                         continue
 

@@ -11,21 +11,21 @@ try:
 except ImportError:
     from ConfigParser import RawConfigParser
 
+try:
+    from io import TextIOWrapper
+except ImportError:
+    pass
+
 # Add 'contrib' to sys.path to simulate installation of package 'flake8'
 # and it's dependencies: 'pyflake', 'pep8' and 'mccabe'
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'contrib'))
 
+import ast
+import mccabe
 import pep8
+import pep8ext_naming
 import pyflakes.api
-from pep8 import readlines
-from flake8.engine import _flake8_noqa
-
-# Monkey-patching is a big evil (don't do this),
-# but hardcode is a much more bigger evil. Hate hardcore!
-try:
-    from .lint_helpers import compile_file, lint_mccabe, lint_pep8_naming
-except (ValueError, SystemError):
-    from lint_helpers import compile_file, lint_mccabe, lint_pep8_naming
+from pyflakes import checker as pyflakes_checker
 
 from flake8._pyflakes import patch_pyflakes
 patch_pyflakes()
@@ -39,17 +39,6 @@ else:
         'flake8'
     )
 CONFIG_FILES = ('setup.cfg', 'tox.ini', '.pep8')
-
-
-def skip_file(path):
-    """
-    Returns True if line with special commit is found in path:
-    # flake8 : noqa
-    """
-    try:
-        return _flake8_noqa(''.join(readlines(path))) is not None
-    except (OSError, IOError):
-        return True
 
 
 class Pep8Report(pep8.BaseReport):
@@ -157,28 +146,11 @@ def load_flake8_config(filename, global_config=False, project_config=False):
     return result
 
 
-def lint(filename, settings):
+def lint(lines, settings):
     """
     Run flake8 lint with internal interpreter.
     """
-    # check if active view contains file
-    if not filename or not os.path.exists(filename):
-        return
-
-    # place for warnings =)
     warnings = []
-
-    # lint with pyflakes
-    if settings.get('pyflakes', True):
-        builtins = settings.get('builtins')
-        if builtins:  # builtins is extended
-            # some magic (ok, ok, monkey-patching) goes here
-            old_builtins = pyflakes.checker.Checker.builtIns
-            pyflakes.checker.Checker.builtIns = old_builtins.union(builtins)
-
-        flakes_reporter = FlakesReporter()
-        pyflakes.api.checkPath(filename, flakes_reporter)
-        warnings.extend(flakes_reporter.errors)
 
     # lint with pep8
     if settings.get('pep8', True):
@@ -187,37 +159,68 @@ def lint(filename, settings):
             ignore=['DIRTY-HACK'],  # PEP8 error will never starts like this
             max_line_length=settings.get('pep8_max_line_length')
         )
-        pep8style.input_file(filename)
+        pep8style.input_file(filename=None, lines=lines.splitlines(True))
         warnings.extend(pep8style.options.report.errors)
 
     try:
-        complexity = int(settings.get('complexity', -1))
-    except (TypeError, ValueError):
-        complexity = -1
+        tree = compile(lines, '', 'exec', ast.PyCF_ONLY_AST, True)
+    except (SyntaxError, TypeError):
+        (exc_type, exc) = sys.exc_info()[:2]
+        if len(exc.args) > 1:
+            offset = exc.args[1]
+            if len(offset) > 2:
+                offset = offset[1:3]
+        else:
+            offset = (1, 0)
 
-    if complexity > -1 or settings.get('naming', True):
-        tree = compile_file(filename)
-        if tree:
-            # check complexity
-            if complexity > -1:
-                warnings.extend(lint_mccabe(filename, tree, complexity))
+        warnings.append((
+            offset[0],
+            offset[1] or 0,
+            'E901 %s: %s' % (exc_type.__name__, exc.args[0])
+        ))
+    else:
+        # lint with pyflakes
+        if settings.get('pyflakes', True):
+            builtins = settings.get('builtins')
+            if builtins:  # builtins is extended
+                # some magic (ok, ok, monkey-patching) goes here
+                pyflakes.checker.Checker.builtIns = (
+                    pyflakes.checker.Checker.builtIns.union(builtins)
+                )
+            w = pyflakes_checker.Checker(tree)
+            w.messages.sort(key=lambda m: m.lineno)
 
-            # lint with naming
-            if settings.get('naming', True):
-                warnings.extend(lint_pep8_naming(filename, tree))
+            reporter = FlakesReporter()
+            for warning in w.messages:
+                reporter.flake(warning)
+            warnings.extend(reporter.errors)
 
-    return warnings
+        # lint with naming
+        if settings.get('naming', True):
+            checker = pep8ext_naming.NamingChecker(tree, None)
+            for error in checker.run():
+                warnings.append(error[0:3])
+
+        try:
+            complexity = int(settings.get('complexity', -1))
+        except (TypeError, ValueError):
+            complexity = -1
+
+        # check complexity
+        if complexity > -1:
+            mccabe.McCabeChecker.max_complexity = complexity
+            checker = mccabe.McCabeChecker(tree, None)
+            for error in checker.run():
+                warnings.append(error[0:3])
+
+    return sorted(warnings, key=lambda e: '{0:09d}{1:09d}'.format(e[0], e[1]))
 
 
-def lint_external(filename, settings, interpreter, linter):
+def lint_external(lines, settings, interpreter, linter):
     """
     Run flake8 lint with external interpreter.
     """
     import subprocess
-
-    # check if active view contains file
-    if not filename or not os.path.exists(filename):
-        return
 
     # first argument is interpreter
     arguments = [interpreter, linter]
@@ -245,9 +248,6 @@ def lint_external(filename, settings, interpreter, linter):
     complexity = settings.get('complexity', -1)
     arguments.extend(('--complexity', str(complexity)))
 
-    # last argument is script to check filename
-    arguments.append(filename)
-
     # place for warnings =)
     warnings = []
 
@@ -255,13 +255,21 @@ def lint_external(filename, settings, interpreter, linter):
     if os.name == 'nt':
         startupinfo = subprocess.STARTUPINFO()
         startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+
     # run subprocess
-    proc = subprocess.Popen(arguments, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT,
-                            startupinfo=startupinfo)
+    proc = subprocess.Popen(
+        arguments,
+        stdout=subprocess.PIPE,
+        stdin=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        startupinfo=startupinfo
+    )
+    result = proc.communicate(input=lines.encode('utf-8'))[0]
 
     # parse STDOUT for warnings and errors
-    for line in proc.stdout:
+    for line in result.splitlines():
+        print(line)
+
         line = line.decode('utf-8').strip()
         warning = line.split(':', 2)
         if len(warning) == 3:
@@ -280,30 +288,35 @@ if __name__ == "__main__":
     import argparse
 
     # parse arguments
-    parser = argparse.ArgumentParser()
+    arg_parser = argparse.ArgumentParser()
 
-    parser.add_argument("filename")
-    parser.add_argument('--pyflakes', action='store_true',
-                        help="run pyflakes lint")
-    parser.add_argument('--builtins', help="python builtins extend")
-    parser.add_argument('--pep8', action='store_true',
-                        help="run pep8 lint")
-    parser.add_argument('--naming', action='store_true',
-                        help="run naming lint")
-    parser.add_argument('--complexity', type=int, help="check complexity")
-    parser.add_argument('--pep8-max-line-length', type=int, default=79,
-                        help="pep8 max line length")
+    arg_parser.add_argument('--pyflakes', action='store_true',
+                            help="run pyflakes lint")
+    arg_parser.add_argument('--builtins',
+                            help="python builtins extend")
+    arg_parser.add_argument('--pep8', action='store_true',
+                            help="run pep8 lint")
+    arg_parser.add_argument('--naming', action='store_true',
+                            help="run naming lint")
+    arg_parser.add_argument('--complexity', type=int,
+                            help="check complexity")
+    arg_parser.add_argument('--pep8-max-line-length', type=int, default=79,
+                            help="pep8 max line length")
 
-    settings = parser.parse_args().__dict__
-    filename = settings.pop('filename')
+    lint_settings = arg_parser.parse_args().__dict__
 
-    if settings.get('builtins'):
-        settings['builtins'] = settings['builtins'].split(',')
+    if lint_settings.get('builtins'):
+        lint_settings['builtins'] = lint_settings['builtins'].split(',')
+
+    if '' == ''.encode():  # Python 2: implicit encoding
+        stdin_lines = sys.stdin.read()
+    else:  # Python 3
+        stdin_lines = TextIOWrapper(sys.stdin.buffer, errors='ignore').read()
 
     # run lint and print errors
-    for warning in lint(filename, settings):
+    for lint_warning in lint(stdin_lines, lint_settings):
         try:
-            print("%d:%d:%s" % warning)
+            print("%d:%d:%s" % lint_warning)
         except Exception:
-            print(warning)
+            print(lint_warning)
         sys.stdout.flush()

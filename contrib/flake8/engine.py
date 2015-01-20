@@ -84,7 +84,7 @@ class StyleGuide(pep8.StyleGuide):
 
 
 def get_style_guide(**kwargs):
-    """Parse the options and configure the checker. This returns a sub-class 
+    """Parse the options and configure the checker. This returns a sub-class
     of ``pep8.StyleGuide``."""
     kwargs['parser'], options_hooks = get_parser()
     styleguide = StyleGuide(**kwargs)

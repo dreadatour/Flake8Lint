@@ -7,6 +7,11 @@
 	// run flake8 lint on file loading
 	"lint_on_load": false,
 
+	// run lint in live mode: lint file (without popup) every XXX ms
+	"live_mode": false,
+	// set live mode lint delay, in milliseconds
+	"live_mode_lint_delay": 1000,
+
 	// set ruler guide based on max line length setting
 	"set_ruler_guide": false,
 

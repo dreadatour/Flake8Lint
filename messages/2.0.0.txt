@@ -1,0 +1,9 @@
+Python Flake8 Lint 2.0.0 Release Notes
+======================================
+
+- live lint results: highlight lint errors instantly on file change
+
+- no need to save file for lint
+
+
+For details, please visit: https://github.com/dreadatour/Flake8Lint
