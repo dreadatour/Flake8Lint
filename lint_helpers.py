@@ -2,39 +2,14 @@
 """
 Flake8 lint helpers.
 """
-import tokenize
+import mccabe
 import pep8ext_naming
-from mccabe import McCabeChecker
+from pep8 import readlines
 
 try:
     import ast
-except ImportError:   # Python 2.5
+except ImportError:  # Python 2.5
     from flake8.util import ast
-
-try:
-    from io import TextIOWrapper
-except ImportError:
-    pass
-
-if '' == ''.encode():
-    # Python 2: implicit encoding.
-    def readlines(filename):
-        """Read the source code."""
-        with open(filename, 'rU') as f:
-            return f.readlines()
-else:
-    # Python 3
-    def readlines(filename):
-        """Read the source code."""
-        try:
-            with open(filename, 'rb') as f:
-                (coding, lines) = tokenize.detect_encoding(f.readline)
-                f = TextIOWrapper(f, coding, line_buffering=True)
-                return [l.decode(coding) for l in lines] + f.readlines()
-        except (LookupError, SyntaxError, UnicodeError):
-            # Fall back if file encoding is improperly declared
-            with open(filename, encoding='latin-1') as f:
-                return f.readlines()
 
 
 def compile_file(filename):
@@ -45,9 +20,11 @@ def compile_file(filename):
         lines = readlines(filename)
     except IOError:
         return
+    else:
+        code = ''.join(lines)
 
     try:
-        return compile(''.join(lines), filename, "exec", ast.PyCF_ONLY_AST)
+        return compile(code, '', 'exec', ast.PyCF_ONLY_AST, True)
     except (SyntaxError, TypeError):
         return
 
@@ -56,19 +33,16 @@ def lint_mccabe(filename, tree, threshold=7):
     """
     Lint file with mccabe complexity check.
     """
-    complexity = []
-    McCabeChecker.max_complexity = threshold
-    for lineno, offset, text, check in McCabeChecker(tree, filename).run():
-        complexity.append((lineno, offset, text))
-    return complexity
+    mccabe.McCabeChecker.max_complexity = threshold
+    checker = mccabe.McCabeChecker(tree, filename)
+
+    return ((err[0], err[1], err[2]) for err in checker.run())
 
 
 def lint_pep8_naming(filename, tree):
     """
     Lint file with pep8-naming.
     """
-    warnings = []
     checker = pep8ext_naming.NamingChecker(tree, filename)
-    for lineno, col_offset, msg, __ in checker.run():
-        warnings.append((lineno, col_offset, msg))
-    return warnings
+
+    return ((err[0], err[1], err[2]) for err in checker.run())
