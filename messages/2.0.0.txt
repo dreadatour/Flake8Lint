@@ -1,7 +1,9 @@
 Python Flake8 Lint 2.0.0 Release Notes
 ======================================
 
-- live lint results: highlight lint errors instantly on file change
+- live lint results (ST3 only): highlight lint errors instantly on file change
+
+- async lint (ST3 only): does not freeze editor on big files
 
 - no need to save file for lint
 
