@@ -316,9 +316,16 @@ class LintReport(object):
         log("prepare flake8 lint errors")
 
         view_errors = {}
+        errors_shown = set()
+
+        errors_list_filtered = []
 
         for error in errors_list:
             log("error to show: {0}".format(error))
+            if error in errors_shown:
+                log("skip error: already shown")
+            errors_shown.add(error)
+
             error_line = error[0] - 1
             error_col = error[1]
             error_text = error[2]
@@ -351,16 +358,14 @@ class LintReport(object):
                     log("error does fit in 'ignore' settings")
                     continue
 
+            # add error to filtered errors list
+            errors_list_filtered.append(error)
+
             # build error text
-            error_msg = [
+            self.errors_to_show.append([
                 error_text,
-                u'{0}: {1}'.format(error_line + 1, line_text.strip())
-            ]
-            # skip if this error is already found (with pep8 or flake8)
-            if error_msg in self.errors_to_show:
-                log("skip error: already shown")
-                continue
-            self.errors_to_show.append(error_msg)
+                u'{0}: {1}'.format(error_line + 1, line_text.strip()),
+            ])
 
             # prepare errors regions
             if self.is_highlight or self.gutter_mark:
@@ -369,7 +374,8 @@ class LintReport(object):
             # save errors for each line in view to special dict
             view_errors.setdefault(error_line, []).append(error_text)
 
-        # save errors dict
+        # save errors
+        self.errors_list = errors_list_filtered
         ERRORS_IN_VIEWS[self.view.id()] = view_errors
 
     def show_errors(self, quiet=False):
@@ -441,10 +447,18 @@ class LintReport(object):
         region_begin = self.view.text_point(error[0] - 1, error[1])
 
         # go to error
-        self.view.window().focus_view(self.view)
         self.view.sel().clear()
         self.view.sel().add(sublime.Region(region_begin, region_begin))
+
+        self.view.window().focus_view(self.view)
         self.view.show_at_center(region_begin)
+
+        # work around sublime bug with caret position not refreshing
+        # see also: https://github.com/SublimeTextIssues/Core/issues/485
+        bug_key = 'selection_bug_demo_workaround_regions_key'
+        self.view.add_regions(bug_key, [], 'no_scope', '', sublime.HIDDEN)
+        self.view.erase_regions(bug_key)
+
         SublimeStatusBar.update(self.view)
 
 
