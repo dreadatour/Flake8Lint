@@ -58,6 +58,7 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"lint_on_load": false,
 
 	// run lint in live mode: lint file (without popup) every XXX ms
+	// please, be careful: this may cause performance issues on ST2
 	"live_mode": false,
 	// set live mode lint delay, in milliseconds
 	"live_mode_lint_delay": 1000,
