@@ -71,6 +71,11 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	// highlight detected conditions?
 	"highlight": true,
 
+	// highlight type:
+	// - "line" to highlight whole line
+	// - "error" to highlight error only
+	"highlight_type": "error",
+
 	// color values to highlight detected conditions
 	"highlight_color_critical": "#981600",
 	"highlight_color_error": "#DA2000",

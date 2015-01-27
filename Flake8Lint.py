@@ -5,6 +5,7 @@ Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 from __future__ import print_function
 import fnmatch
+import itertools
 import os
 import re
 import sys
@@ -21,7 +22,22 @@ except (ValueError, SystemError):
     from lint import lint, lint_external, load_flake8_config
 
 
+# copy-pasted from flake8.engine
 FLAKE8_NOQA = re.compile(r'flake8[:=]\s*noqa', re.I).search
+
+# copy-pasted from pep8
+COMPARE_SINGLETON_REGEX = re.compile(r'(?:[=!]=)\s*(?:None|False|True)')
+COMPARE_NEGATIVE_REGEX = re.compile(r'\b(?:not)\s+[^\[({ ]+\s+(?:in|is)\s')
+COMPARE_TYPE_REGEX = re.compile(
+    r'(?:[=!]=|is(?:\s+not)?)\s*type(?:s.\w+Type|\s*\(\s*([^)]*[^ )])\s*\))'
+)
+
+WHITESPACES = (' ', '\t')
+OPERATORS = [
+    '**=', '//=', '<<=', '>>=', '==', '!=', '<>', '>=', '<=', '*=', '/=', '%=',
+    '+=', '-=', '<<', '>>', '&=', '|=', '^=', '**', '//', '=', '>', '<', '&',
+    '|', '^', '~', '%', '*', '/', '+', '-'
+]
 
 PROJECT_SETTINGS_KEYS = (
     'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'naming',
@@ -35,14 +51,163 @@ FLAKE8_SETTINGS_KEYS = (
 ERRORS_IN_VIEWS = {}
 PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
-ERROR_LEVELS = ('warning', 'error', 'critical')
 
-MARK_TYPES = ('dot', 'circle', 'bookmark', 'cross')
-MARK_THEMES = ('alpha', 'bright', 'dark', 'hard', 'simple')
+settings = None
 
 
-SETTINGS = {}
-DEBUG_ENABLED = False
+class Flake8LintSettings(object):
+    """
+    Flake8Lint settings.
+    """
+    debug = False
+
+    def __init__(self):
+        """
+        Initialize settings.
+        """
+        print("--- settings init")
+
+        editor_settings = sublime.load_settings('Preferences.sublime-settings')
+        editor_settings.clear_on_change('flake8lint-color-scheme')
+        editor_settings.add_on_change('flake8lint-color-scheme',
+                                      lambda: update_color_scheme(settings))
+
+        self.settings = sublime.load_settings('Flake8Lint.sublime-settings')
+        self.settings.clear_on_change('reload')
+        self.settings.add_on_change('reload', self.setup)
+
+        self.setup()
+
+    def setup(self):
+        """
+        Update settings.
+        """
+        print("--- settings setup")
+
+        # debug mode (verbose output to ST python console)
+        self.debug = bool(self.settings.get('debug', False))
+
+        # run flake8 lint on file saving
+        self.lint_on_save = bool(self.settings.get('lint_on_save', True))
+
+        # run flake8 lint on file loading
+        self.lint_on_load = bool(self.settings.get('lint_on_load', False))
+
+        # run lint in live mode: lint file (without popup) every XXX ms
+        # please, be careful: this may cause performance issues on ST2
+        self.live_mode = bool(self.settings.get('live_mode', False))
+
+        # set live mode lint delay, in milliseconds
+        try:
+            self.live_mode_lint_delay = int(
+                self.settings.get('live_mode_lint_delay', 1000)
+            )
+        except (ValueError, TypeError):
+            self.live_mode_lint_delay = 1000
+
+        # set ruler guide based on max line length setting
+        self.set_ruler_guide = bool(
+            self.settings.get('set_ruler_guide', False)
+        )
+
+        # popup a dialog of detected conditions?
+        self.popup = bool(self.settings.get('popup', True))
+
+        # highlight detected conditions?
+        self.highlight = bool(self.settings.get('highlight', True))
+
+        # highlight type:
+        # - "line" to highlight whole line
+        # - "error" to highlight error only
+        self.highlight_type = self.settings.get('highlight_type')
+        if self.highlight_type != 'line':
+            self.highlight_type = 'error'
+
+        # color values to highlight detected conditions
+        self.highlight_color_critical = self.settings.get(
+            'highlight_color_critical', '#981600'
+        )
+        self.highlight_color_error = self.settings.get(
+            'highlight_color_error', '#DA2000'
+        )
+        self.highlight_color_warning = self.settings.get(
+            'highlight_color_warning', '#EDBA00'
+        )
+
+        # show a mark in the gutter on all lines with errors/warnings:
+        # - "dot", "circle" or "bookmark" to show marks
+        # - "theme-alpha", "theme-bright", "theme-dark", "theme-hard"
+        #   or "theme-simple" to show icon marks
+        # - "" (empty string) to do not show marks
+        all_gutter_marks = (
+            'dot', 'circle', 'bookmark', 'theme-alpha', 'theme-bright',
+            'theme-dark', 'theme-hard', 'theme-simple', ''
+        )
+        self.gutter_marks = self.settings.get('gutter_marks')
+        if self.gutter_marks not in all_gutter_marks:
+            self.gutter_marks = 'theme-simple'
+
+        # report successfull (passed) lint
+        self.report_on_success = bool(
+            self.settings.get('report_on_success', False)
+        )
+
+        # load global flake8 config ("~/.config/flake8")
+        self.use_flake8_global_config = bool(
+            self.settings.get('use_flake8_global_config', True)
+        )
+
+        # load per-project config
+        # (i.e. "tox.ini", "setup.cfg" and ".pep8" files)
+        self.use_flake8_project_config = bool(
+            self.settings.get('use_flake8_project_config', True)
+        )
+
+        # set python interpreter (lint files for python >= 2.7):
+        # - 'internal' for use internal Sublime Text interpreter (2.6)
+        # - 'auto' for search default system python interpreter (default value)
+        # - absolute path to python interpreter for define another one
+        #   use platform specific notation,
+        #   i.e. "C:\\Anaconda\\envs\\py33\\python.exe"
+        #   for Windows or then "/home/whatever/pythondist/python" for Unix
+        self.python_interpreter = self.settings.get(
+            'python_interpreter', 'auto'
+        )
+
+        # list of python built-in functions (like '_')
+        self.builtins = self.settings.get('builtins') or []
+
+        # turn on pyflakes error lint
+        self.pyflakes = bool(self.settings.get('pyflakes', True))
+
+        # turn on pep8 error lint
+        self.pep8 = bool(self.settings.get('pep8', True))
+
+        # turn on naming error lint
+        self.naming = bool(self.settings.get('naming', True))
+
+        # turn off complexity check (set number > 0 to check complexity level)
+        try:
+            self.complexity = int(self.settings.get('complexity', -1))
+        except (ValueError, TypeError):
+            self.complexity = -1
+
+        # set desired max line length
+        try:
+            self.pep8_max_line_length = int(
+                self.settings.get('pep8_max_line_length', 79)
+            )
+        except (ValueError, TypeError):
+            self.pep8_max_line_length = 79
+
+        # select errors and warnings (e.g. ["E", "W6"])
+        self.select = self.settings.get('select') or []
+
+        # skip errors and warnings (e.g. ["E303", E4", "W"])
+        self.ignore = self.settings.get('ignore') or []
+
+        # files to ignore, for example: ["*.mako", "test*.py"]
+        self.ignore_files = self.settings.get('ignore_files') or []
 
 
 def log(msg, level=None):
@@ -54,10 +219,57 @@ def log(msg, level=None):
     if level is None:
         level = 'debug'
 
-    if level == 'debug' and not DEBUG_ENABLED:
+    if level == 'debug' and not settings.debug:
         return
 
     print("[Flake8Lint {0}] {1}".format(level.upper(), msg))
+
+
+def isspace(symbol):
+    """
+    Returns `True` if `symbol` is space or tab.
+    """
+    return symbol in WHITESPACES
+
+
+def isname(symbol):
+    """
+    Returns `True` if `symbol` is part of function, class, etc name.
+    """
+    return bool(re.match(r'[_a-zA-Z0-9]', symbol))
+
+
+def operator_next(line, col):
+    """
+    Check if there is an operator in line, starting from `col`.
+    Returns operator length if so.
+    """
+    line_piece = line[col:col + len(OPERATORS[0])]
+    for oper in OPERATORS:
+        if line_piece.startswith(oper):
+            return len(oper)
+
+
+def operator_prev(line, col):
+    """
+    Check if there is an operator in line, ends at `col`.
+    Returns operator length if so.
+    """
+    line_piece = line[col - len(OPERATORS[0]):col]
+    for oper in OPERATORS:
+        if line_piece.endswith(oper):
+            return len(oper)
+
+
+def find_in_string(pattern, line):
+    """
+    Find pattern in string and return start and end positions.
+    """
+    match = re.search(r'\b{0}\b'.format(re.escape(pattern)), line)
+    if match:
+        func_pos = match.span()[0]
+        if func_pos > -1:
+            return func_pos
 
 
 def filename_match(filename, patterns):
@@ -152,13 +364,10 @@ class SublimeView(object):
         # get settings from global (user) plugin settings
         view_settings = view.settings().get('flake8lint') or {}
         for param in PROJECT_SETTINGS_KEYS:
-            if param in view_settings:
-                result[param] = view_settings.get(param)
-            elif SETTINGS.has(param):
-                result[param] = SETTINGS.get(param)
+            result[param] = view_settings.get(param, getattr(settings, param))
 
-        global_config = result.get('use_flake8_global_config', False)
-        project_config = result.get('use_flake8_project_config', False)
+        global_config = result.get('use_flake8_global_config', True)
+        project_config = result.get('use_flake8_project_config', True)
 
         if global_config or project_config:
             filename = os.path.abspath(view.file_name())
@@ -238,14 +447,14 @@ class LintReport(object):
         """
         Returns gutter mark icon or empty string if marks are disabled.
         """
-        mark_type = str(SETTINGS.get('gutter_marks', ''))
+        mark_type = settings.gutter_marks
 
-        if mark_type in MARK_TYPES:
+        if mark_type in ('dot', 'circle', 'bookmark', 'cross'):
             return mark_type
 
         if mark_type.startswith('theme-'):
             theme = mark_type[6:]
-            if theme in MARK_THEMES:
+            if theme in ('alpha', 'bright', 'dark', 'hard', 'simple'):
                 mark_themes_paths = [
                     'Packages', os.path.basename(PLUGIN_DIR), 'gutter-themes'
                 ]
@@ -276,38 +485,318 @@ class LintReport(object):
 
         self.select = view_settings.get('select') or []
         self.ignore = view_settings.get('ignore') or []
-        self.is_highlight = SETTINGS.get('highlight', False)
-        self.is_popup = SETTINGS.get('popup', True)
+        self.is_highlight = settings.highlight
+        self.is_popup = settings.popup
 
         log("'select' setting: {0}".format(self.select))
         log("'ignore' setting: {0}".format(self.ignore))
         log("'is_highlight' setting: {0}".format(self.is_highlight))
         log("'is_popup' setting: {0}".format(self.is_popup))
 
-    def add_region(self, line_text, line_point, error_code, error_col):
+    def error_region(self, full_line_text, line_point, error_msg, error_col):
         """
         Add error region to regions list.
         """
+        error_code, error_text = error_msg.split(' ', 1)
+
+        line_text = full_line_text.rstrip('\r\n')
         line_length = len(line_text)
 
-        # calculate error highlight start and end positions
-        start = line_point + line_length - len(line_text.lstrip())
+        # highlight whole line by default
+        start = line_point
         end = line_point + line_length
 
-        # small tricks
-        if error_code == 'E501':
-            # too long lines: highlight only the rest of line
+        # -- PEP8 -------------------------------------------------------------
+        if error_code in ('E101', 'E111', 'E112', 'E113', 'E121', 'E122',
+                          'E123', 'E124', 'E125', 'E126', 'E127', 'E128',
+                          'E129', 'E131', 'W191'):
+            # E101 indentation contains mixed spaces and tabs
+            # E111 indentation is not a multiple of four
+            # E112 expected an indented block
+            # E113 unexpected indentation
+            # E121 continuation line under-indented for hanging indent
+            # E122 continuation line missing indentation or outdented
+            # E123 closing bracket does not match indentation
+            #      of opening bracket's line
+            # E124 closing bracket does not match visual indentation
+            # E125 continuation line with same indent as next logical line
+            # E126 continuation line over-indented for hanging indent
+            # E127 continuation line over-indented for visual indent
+            # E128 continuation line under-indented for visual indent
+            # E129 visually indented line with same indent as next logical line
+            # E131 continuation line unaligned for hanging indent
+            # W191 indentation contains tabs
+            start = line_point
+            end = line_point + line_length - len(line_text.lstrip())
+        elif error_code in ('E201', 'E211', 'E221', 'E222', 'E223', 'E224',
+                            'E241', 'E242', 'E251', 'E271', 'E272', 'E273',
+                            'E274'):
+            # E201 whitespace after 'XXX'
+            # E211 whitespace before 'XXX'
+            # E221 multiple spaces before operator
+            # E222 multiple spaces after operator
+            # E223 tab before operator
+            # E224 tab after operator
+            # E241 multiple spaces after 'XXX'
+            # E242 tab after 'XXX'
+            # E251 unexpected spaces around keyword / parameter equals
+            # E271 multiple spaces after keyword
+            # E272 multiple spaces before keyword
+            # E273 tab after keyword
+            # E274 tab before keyword
+            tail = line_text[error_col:]
             start = line_point + error_col
-        # TODO: add another tricks like 'E303 too many blank lines'
+            end = start + sum(1 for __ in itertools.takewhile(isspace, tail))
+        elif error_code in ('E202', 'E203'):
+            # E202 whitespace before 'XXX'
+            # E203 whitespace before 'XXX'
+            head = line_text[:error_col + 1][::-1]
+            end = line_point + error_col + 1
+            start = end - sum(1 for __ in itertools.takewhile(isspace, head))
+        elif error_code in ('E225', 'E226', 'E227', 'E228'):
+            # E225 missing whitespace around operator
+            # E226 missing whitespace around arithmetic operator
+            # E227 missing whitespace around bitwise or shift operator
+            # E228 missing whitespace around modulo operator
+            head = operator_next(line_text, error_col)
+            if head:
+                start = line_point + error_col
+                end = start + head
+            else:
+                tail = operator_prev(line_text, error_col)
+                if tail:
+                    end = line_point + error_col
+                    start = end - tail
+        elif error_code == 'E231':
+            # E231 missing whitespace after 'XXX'
+            if line_text[error_col] in ',;:':
+                start = line_point + error_col
+                end = start + 1
+        elif error_code == 'E261':
+            # E261 at least two spaces before inline comment
+            tail = line_text[error_col:]
+            start = line_point + error_col
+            end = start + sum(1 for __ in itertools.takewhile(isspace, tail))
+            if end == start:
+                end = line_point + line_length
+        elif error_code in ('E262', 'E265'):
+            # E262 inline comment should start with '# '
+            # E265 block comment should start with '# '
+            start = line_point + error_col
+            end = line_point + line_length
+        elif error_code == 'W291':
+            # W291 trailing whitespace
+            start = line_point + len(line_text.rstrip())
+            end = line_point + line_length
+        elif error_code in ('W292', 'W293'):
+            # W292 no newline at end of file
+            # W293 blank line contains whitespace
+            pass  # whole line is highlighted by default
+        elif error_code in ('E301', 'E302', 'E303', 'E304'):
+            # E301 expected 1 blank line, found XXX
+            # E302 expected 2 blank lines, found XXX
+            # E303 too many blank lines (XXX)
+            # E304 blank lines found after function decorator
+            pass  # whole line is highlighted by default
+            # TODO: highlight blank lines if any
+        elif error_code == 'W391':
+            # W391 blank line at end of file
+            start = line_point
+            end = line_point + len(full_line_text)
+        elif error_code == 'E401':
+            # E401 multiple imports on one line
+            pass  # whole line is highlighted by default
+        elif error_code == 'E501':
+            # E501 line too long (XXX > YYY characters)
+            start = line_point + error_col
+            end = line_point + line_length
+        elif error_code == 'E502':
+            # E502 the backslash is redundant between brackets
+            if line_text[error_col] == '\\':
+                start = line_point + error_col
+                end = start + 1
+        elif error_code == 'W601':
+            # W601 .has_key() is deprecated, use 'in'
+            if line_text[error_col:].startswith('.has_key('):
+                start = line_point + error_col + 1
+                end = start + 7
+        elif error_code == 'W602':
+            # W602 deprecated form of raising exception
+            pass  # whole line is highlighted by default
+        elif error_code == 'W603':
+            # W603 '<>' is deprecated, use '!='
+            if line_text[error_col:].startswith('<>'):
+                start = line_point + error_col
+                end = start + 2
+        elif error_code == 'W604':
+            # W604 backticks are deprecated, use 'repr()'
+            pass  # whole line is highlighted by default
+        elif error_code == 'E701':
+            # E701 multiple statements on one line (colon)
+            if line_text[error_col] == ':':
+                start = line_point + error_col
+                end = line_point + line_length
+        elif error_code == 'E702':
+            # E702 multiple statements on one line (semicolon)
+            if line_text[error_col] == ';':
+                start = line_point + error_col
+                end = line_point + line_length
+        elif error_code == 'E703':
+            # E703 statement ends with a semicolon
+            if line_text[error_col] == ';':
+                start = line_point + error_col
+                end = start + 1
+        elif error_code in ('E711', 'E712'):
+            # E711 comparison to None should be 'XXX'
+            # E712 comparison to None should be 'XXX'
+            match = COMPARE_SINGLETON_REGEX.search(line_text[error_col:])
+            if match:
+                start = line_point + error_col
+                end = start + len(match.group(0))
+        elif error_code in ('E713', 'E714'):
+            # E713 test for membership should be 'not in'
+            # E714 test for object identity should be 'is not'
+            match = COMPARE_NEGATIVE_REGEX.search(line_text[error_col:])
+            if match:
+                start = line_point + error_col
+                end = start + len(match.group(0)) - 1
+        elif error_code == 'E721':
+            # E721 do not compare types, use 'isinstance()'
+            match = COMPARE_TYPE_REGEX.search(line_text[error_col:])
+            if match:
+                start = line_point + error_col
+                end = start + len(match.group(0))
 
-        if error_code[0] == 'F':
-            regions_list = self.regions['critical']
-        elif error_code[0] == 'E':
-            regions_list = self.regions['error']
-        else:
-            regions_list = self.regions['warning']
+        # -- pyflakes ---------------------------------------------------------
+        elif error_code == 'F401':
+            # F401 UnusedImport
+            obj_len = error_text[1:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[1:obj_len + 1]
+                obj_pos = find_in_string(obj_name, line_text)
+                if obj_pos:
+                    start = line_point + obj_pos
+                    end = start + obj_len
+        elif error_code == 'F402':
+            # F402 ImportShadowedByLoopVar
+            obj_len = error_text[8:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[8:obj_len + 8]
+                obj_pos = find_in_string(obj_name, line_text)
+                if obj_pos:
+                    start = line_point + obj_pos
+                    end = start + obj_len
+        elif error_code == 'F403':
+            # F403 ImportStarUsed'
+            match = re.search(r'\bimport\s+\*', line_text)
+            if match:
+                obj_start, obj_end = match.span()
+                if obj_start > -1:
+                    start = line_point + obj_start
+                    end = line_point + obj_end
+        elif error_code == 'F404':
+            # F404 LateFutureImport
+            pass  # whole line is highlighted by default
+        elif error_code == 'F810':
+            # F810 Redefined
+            pass  # whole line is highlighted by default
+        elif error_code == 'F811':
+            # F811 RedefinedWhileUnused
+            obj_len = error_text[24:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[24:obj_len + 24]
+                obj_pos = find_in_string(obj_name, line_text)
+                if obj_pos:
+                    start = line_point + obj_pos
+                    end = start + obj_len
+        elif error_code == 'F812':
+            # F812 RedefinedInListComp
+            obj_len = error_text[30:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[30:obj_len + 30]
+                if line_text[error_col:error_col + obj_len] == obj_name:
+                    start = line_point + error_col
+                    end = start + obj_len
+        elif error_code == 'F821':
+            # F821 UndefinedName
+            obj_len = error_text[16:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[16:obj_len + 16]
+                if line_text[error_col:error_col + obj_len] == obj_name:
+                    start = line_point + error_col
+                    end = start + obj_len
+        elif error_code == 'F822':
+            # F822 UndefinedExport
+            pass  # whole line is highlighted by default
+            # TODO: can't write correct regex because of indeterminacy
+        elif error_code == 'F823':
+            # F823 UndefinedLocal
+            obj_len = error_text[16:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[16:obj_len + 16]
+                if line_text[error_col:error_col + obj_len] == obj_name:
+                    start = line_point + error_col
+                    end = start + obj_len
+        elif error_code == 'F831':
+            # F831 DuplicateArgument
+            pass  # whole line is highlighted by default
+            # TODO: maybe we need regex with 'find two vars in parenthesis'?
+        elif error_code == 'F841':
+            # F841 UnusedVariable
+            obj_len = error_text[16:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[16:obj_len + 16]
+                if line_text[error_col:error_col + obj_len] == obj_name:
+                    start = line_point + error_col
+                    end = start + obj_len
 
-        regions_list.append(sublime.Region(start, end))
+        # -- mccabe -----------------------------------------------------------
+        elif error_code == 'C901':
+            # C901 'XXX' is too complex (YYY)
+            obj_len = error_text[1:].find("'")
+            if obj_len > 0:  # not -1 here, we need at least one sybmol
+                obj_name = error_text[1:obj_len + 1]
+                obj_pos = find_in_string(obj_name, line_text)
+                if obj_pos:
+                    start = line_point + obj_pos
+                    end = start + obj_len
+
+        # -- pep8-naming ------------------------------------------------------
+        elif error_code in ('N801', 'N802', 'N806'):
+            # N801 class names should use CapWords convention
+            # N802 function name should be lowercase
+            # N806 variable in function should be lowercase
+            tail = line_text[error_col:]
+            start = line_point + error_col
+            end = start + sum(1 for __ in itertools.takewhile(isname, tail))
+        elif error_code in ('N803', 'N804', 'N805'):
+            # N803 argument name should be lowercase
+            # N804 first argument of a classmethod should be named 'cls'
+            # N805 first argument of a method should be named 'self'
+            pass  # whole line is highlighted by default
+            # TODO: maybe we need regex with 'find vars in parenthesis'?
+        elif error_code == 'N811':
+            # N811 constant imported as non constant
+            pass  # whole line is highlighted by default
+            # TODO: we need to fix pep8-naming for error column detect
+        elif error_code == 'N812':
+            # N812 lowercase imported as non lowercase
+            pass  # whole line is highlighted by default
+            # TODO: we need to fix pep8-naming for error column detect
+        elif error_code == 'N813':
+            # N813 camelcase imported as lowercase
+            pass  # whole line is highlighted by default
+            # TODO: we need to fix pep8-naming for error column detect
+        elif error_code == 'N814':
+            # N814 camelcase imported as constant
+            pass  # whole line is highlighted by default
+            # TODO: we need to fix pep8-naming for error column detect
+
+        if start == end:
+            start = line_point
+            end = line_point + line_length
+
+        return start, end
 
     def prepare_errors(self, errors_list):
         """
@@ -369,7 +858,22 @@ class LintReport(object):
 
             # prepare errors regions
             if self.is_highlight or self.gutter_mark:
-                self.add_region(line_text, line_point, error_code, error_col)
+                if settings.highlight_type == 'line':
+                    start = line_point
+                    end = line_point + len(line_text)
+                else:
+                    start, end = self.error_region(
+                        full_line_text, line_point, error_text, error_col
+                    )
+
+                if error_code[0] == 'F':
+                    regions_list = self.regions['critical']
+                elif error_code[0] == 'E':
+                    regions_list = self.regions['error']
+                else:
+                    regions_list = self.regions['warning']
+
+                regions_list.append(sublime.Region(start, end))
 
             # save errors for each line in view to special dict
             view_errors.setdefault(error_line, []).append(error_text)
@@ -395,7 +899,7 @@ class LintReport(object):
 
         # highlight error regions if defined
         if self.is_highlight:
-            for level in ERROR_LEVELS:
+            for level in ('warning', 'error', 'critical'):
                 if not self.regions[level]:
                     continue
 
@@ -410,7 +914,7 @@ class LintReport(object):
                 )
 
         elif self.gutter_mark:
-            for level in ERROR_LEVELS:
+            for level in ('warning', 'error', 'critical'):
                 if not self.regions[level]:
                     continue
 
@@ -494,8 +998,8 @@ class Flake8Lint(object):
         Run actions on file load.
         Wait until file was finally loaded and run actions if needed.
         """
-        set_ruler_guide = SETTINGS.get('set_ruler_guide', False)
-        lint_on_load = SETTINGS.get('lint_on_load', False)
+        set_ruler_guide = settings.set_ruler_guide
+        lint_on_load = settings.lint_on_load
 
         if not (set_ruler_guide or lint_on_load):
             return  # no need to do anything
@@ -551,7 +1055,7 @@ class Flake8Lint(object):
         # - we need to clear regions with fixed previous errors
         # - is user will turn off 'highlight' in settings and then run lint
         # - user adds file with errors to 'ignore_files' list
-        for level in ERROR_LEVELS:
+        for level in ('warning', 'error', 'critical'):
             view.erase_regions('flake8lint-{0}'.format(level))
 
         # we need to always erase status too. same situations.
@@ -689,7 +1193,7 @@ class Flake8Lint(object):
         # show errors
         if errors_list:
             LintReport(view, errors_list, view_settings, quiet=quiet)
-        elif SETTINGS.get('report_on_success', False):
+        elif settings.report_on_success:
             sublime.message_dialog('Flake8 Lint: SUCCESS')
 
 
@@ -773,7 +1277,7 @@ class Flake8LintBackground(sublime_plugin.EventListener):
             log("skip lint because view is scratch")
             return  # do not lint scratch views
 
-        if SETTINGS.get('lint_on_save', True):
+        if settings.lint_on_save:
             log("run lint by 'on_post_save' hook")
             Flake8Lint.do_lint(view)
         else:
@@ -802,7 +1306,7 @@ class Flake8LintBackground(sublime_plugin.EventListener):
         """
         View was modified: run delayed lint if needed.
         """
-        if SETTINGS.get('live_mode', False):
+        if settings.live_mode:
             self.delayed_lint(view)
 
     def delayed_lint(self, view):
@@ -822,23 +1326,22 @@ class Flake8LintBackground(sublime_plugin.EventListener):
                 log("run delayed lint (live_mode)")
                 Flake8Lint.do_lint(view, quiet=True)
 
-        self.set_timeout(callback, SETTINGS.get('live_mode_lint_delay', 1000))
+        self.set_timeout(callback, settings.live_mode_lint_delay)
 
 
 def plugin_loaded():
     """
-    Load plugin settings when 'plugin was loaded' event appears.
+    Do some staff when 'plugin was loaded' event appears.
     """
-    global SETTINGS
-    global DEBUG_ENABLED
+    global settings
 
-    SETTINGS = sublime.load_settings("Flake8Lint.sublime-settings")
+    settings = Flake8LintSettings()
 
-    if SETTINGS.get('debug', False):
-        DEBUG_ENABLED = True
-        log("plugin was loaded")
+    print('===', settings.debug)
 
-    update_color_scheme(SETTINGS)
+    log("plugin was loaded")
+
+    update_color_scheme(settings)
     Flake8Lint.on_file_load()
 
 

@@ -17,7 +17,7 @@ except ImportError:
     pass
 
 # Add 'contrib' to sys.path to simulate installation of package 'flake8'
-# and it's dependencies: 'pyflake', 'pep8' and 'mccabe'
+# and it's dependencies: 'pyflake', 'pep8', 'mccabe' and 'pep8-naming'
 CONTRIB_PATH = os.path.join(os.path.dirname(__file__), 'contrib')
 if CONTRIB_PATH not in sys.path:
     sys.path.insert(0, CONTRIB_PATH)

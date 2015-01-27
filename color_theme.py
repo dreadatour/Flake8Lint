@@ -15,8 +15,8 @@ from xml.etree import ElementTree
 try:
     from xml.parsers import expat  # noqa
 except ImportError:
-    # Add 'contrib' to sys.path to simulate installation of package 'flake8'
-    # and it's dependencies: 'pyflake', 'pep8' and 'mccabe'
+    # Add 'contrib' to sys.path to simulate installation
+    # of package 'elementtree'
     CONTRIB_PATH = os.path.join(os.path.dirname(__file__), 'contrib')
     if CONTRIB_PATH not in sys.path:
         sys.path.insert(0, CONTRIB_PATH)
@@ -110,9 +110,9 @@ def update_color_scheme(settings):
     Asynchronously call generate_color_scheme_async.
     """
     colors = {
-        'critical': settings.get('color_critical'),
-        'error': settings.get('color_error'),
-        'warning': settings.get('color_warning'),
+        'critical': settings.highlight_color_critical,
+        'error': settings.highlight_color_error,
+        'warning': settings.highlight_color_warning,
     }
     sublime3 = int(sublime.version()) >= 3000
 
