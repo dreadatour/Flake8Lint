@@ -270,8 +270,6 @@ def lint_external(lines, settings, interpreter, linter):
 
     # parse STDOUT for warnings and errors
     for line in result.splitlines():
-        print(line)
-
         line = line.decode('utf-8').strip()
         warning = line.split(':', 2)
         if len(warning) == 3:

@@ -90,6 +90,11 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	// report successfull (passed) lint
 	"report_on_success": false,
 
+    // blink gutter marks on success (will not blink with live mode check)
+    // this icon is not depends on 'gutter_marks' settings
+    // please, be careful: this may cause performance issues on ST2
+    "blink_gutter_marks_on_success": true,
+
 	// load global flake8 config ("~/.config/flake8")
 	"use_flake8_global_config": true,
 	// load per-project config (i.e. "tox.ini", "setup.cfg" and ".pep8" files)

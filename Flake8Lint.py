@@ -65,8 +65,6 @@ class Flake8LintSettings(object):
         """
         Initialize settings.
         """
-        print("--- settings init")
-
         editor_settings = sublime.load_settings('Preferences.sublime-settings')
         editor_settings.clear_on_change('flake8lint-color-scheme')
         editor_settings.add_on_change('flake8lint-color-scheme',
@@ -82,8 +80,6 @@ class Flake8LintSettings(object):
         """
         Update settings.
         """
-        print("--- settings setup")
-
         # debug mode (verbose output to ST python console)
         self.debug = bool(self.settings.get('debug', False))
 
@@ -147,9 +143,23 @@ class Flake8LintSettings(object):
         if self.gutter_marks not in all_gutter_marks:
             self.gutter_marks = 'theme-simple'
 
+        mark_themes_paths = [
+            'Packages', os.path.basename(PLUGIN_DIR), 'gutter-themes'
+        ]
+        if int(sublime.version()) < 3014:
+            mark_themes_paths = (
+                [os.path.pardir, os.path.pardir] + mark_themes_paths
+            )
+        self.mark_themes_dir = '/'.join(mark_themes_paths)
+
         # report successfull (passed) lint
         self.report_on_success = bool(
             self.settings.get('report_on_success', False)
+        )
+
+        # blink gutter marks on success
+        self.blink_gutter_marks_on_success = bool(
+            self.settings.get('blink_gutter_marks_on_success', True)
         )
 
         # load global flake8 config ("~/.config/flake8")
@@ -428,6 +438,7 @@ class LintReport(object):
     regions = {}
 
     gutter_mark = ''
+    gutter_mark_success = ''
     select = []
     ignore = []
     is_highlight = False
@@ -441,47 +452,48 @@ class LintReport(object):
 
         self.prepare_settings(view_settings)
         self.prepare_errors(errors_list)
-        self.show_errors(quiet=quiet)
+
+        if self.errors_list:
+            self.show_errors(quiet=quiet)
+        else:
+            self.report_success(quiet=quiet)
 
     def get_gutter_mark(self):
         """
         Returns gutter mark icon or empty string if marks are disabled.
         """
+        # ST does not expect platform specific paths here, but only
+        # forward-slash separated paths relative to "Packages"
+        self.gutter_mark_success = '/'.join(
+            [settings.mark_themes_dir, 'success']
+        )
+        if int(sublime.version()) >= 3014:
+            self.gutter_mark_success += '.png'
+
+        self.gutter_mark = ''
+
         mark_type = settings.gutter_marks
-
         if mark_type in ('dot', 'circle', 'bookmark', 'cross'):
-            return mark_type
-
-        if mark_type.startswith('theme-'):
+            self.gutter_mark = mark_type
+        elif mark_type.startswith('theme-'):
             theme = mark_type[6:]
-            if theme in ('alpha', 'bright', 'dark', 'hard', 'simple'):
-                mark_themes_paths = [
-                    'Packages', os.path.basename(PLUGIN_DIR), 'gutter-themes'
-                ]
-                if int(sublime.version()) < 3014:
-                    mark_themes_paths = (
-                        [os.path.pardir, os.path.pardir] + mark_themes_paths
-                    )
-
-                # ST does not expect platform specific paths here, but only
-                # forward-slash separated paths relative to "Packages"
-                mark_themes_dir = '/'.join(mark_themes_paths)
-                mark = '/'.join([mark_themes_dir, '{0}-{{0}}'.format(theme)])
-
-                if int(sublime.version()) >= 3014:
-                    mark += '.png'
-
-                return mark
-            else:
+            if theme not in ('alpha', 'bright', 'dark', 'hard', 'simple'):
                 log("unknown gutter mark theme: '{0}'".format(mark_type))
+                return
 
-        return ''
+            # ST does not expect platform specific paths here, but only
+            # forward-slash separated paths relative to "Packages"
+            self.gutter_mark = '/'.join(
+                [settings.mark_themes_dir, '{0}-{{0}}'.format(theme)]
+            )
+            if int(sublime.version()) >= 3014:
+                self.gutter_mark += '.png'
 
     def prepare_settings(self, view_settings):
         """
         Get view lint settings.
         """
-        self.gutter_mark = self.get_gutter_mark()
+        self.get_gutter_mark()
 
         self.select = view_settings.get('select') or []
         self.ignore = view_settings.get('ignore') or []
@@ -965,6 +977,31 @@ class LintReport(object):
 
         SublimeStatusBar.update(self.view)
 
+    def report_success(self, quiet=False):
+        """
+        Blink with gutter marks (success report).
+        """
+        if quiet:
+            return
+
+        if settings.report_on_success:
+            log("Report about lint success")
+            sublime.message_dialog('Flake8 Lint: SUCCESS')
+
+        if settings.blink_gutter_marks_on_success:
+            log("Blink gutter marks about lint success")
+            self.view.add_regions(
+                'flake8lint-success',
+                self.view.lines(sublime.Region(0, self.view.size())),
+                'flake8lint.mark.gutter',
+                self.gutter_mark_success,
+                sublime.HIDDEN
+            )
+            sublime.set_timeout(
+                lambda: self.view.erase_regions('flake8lint-success'),
+                300
+            )
+
 
 class Flake8Lint(object):
     """
@@ -1188,13 +1225,10 @@ class Flake8Lint(object):
         log("lint time: {0:.3f}ms".format(lint_time))
         log("lint errors found: {0}".format(len(errors_list)))
 
-        Flake8Lint.cleanup(view)  # clean regions and statusbar
-
+        # clean regions and statusbar
+        Flake8Lint.cleanup(view)
         # show errors
-        if errors_list:
-            LintReport(view, errors_list, view_settings, quiet=quiet)
-        elif settings.report_on_success:
-            sublime.message_dialog('Flake8 Lint: SUCCESS')
+        LintReport(view, errors_list, view_settings, quiet=quiet)
 
 
 class Flake8NextErrorCommand(sublime_plugin.TextCommand):
@@ -1336,8 +1370,6 @@ def plugin_loaded():
     global settings
 
     settings = Flake8LintSettings()
-
-    print('===', settings.debug)
 
     log("plugin was loaded")
 
