@@ -1,7 +1,7 @@
 Python Flake8 Lint
 ==================
 
-Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** and **[pep8-naming](https://github.com/flintwork/pep8-naming)**.
+Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[PEP257](http://www.python.org/dev/peps/pep-0257/)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** and **[pep8-naming](https://github.com/flintwork/pep8-naming)**.
 
 Based on **[bitbucket.org/tarek/flake8](https://bitbucket.org/tarek/flake8)**.
 
@@ -12,6 +12,8 @@ Lint tools
 **[Flake8](http://pypi.python.org/pypi/flake8)** (used in "Python Flake8 Lint") is a wrapper around these tools:
 
 * **[pep8](http://pypi.python.org/pypi/pep8)** is a tool to check your Python code against some of the style conventions in [PEP8](http://www.python.org/dev/peps/pep-0008/).
+
+* **[pep257](http://pypi.python.org/pypi/pep257)** is a static analysis tool for checking compliance with Python [PEP257](http://www.python.org/dev/peps/pep-0257/). This lint tool is disabled by default.
 
 * **[PyFlakes](https://launchpad.net/pyflakes)** checks only for logical errors in programs; it does not perform any check on style.
 
@@ -115,6 +117,8 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"pyflakes": true,
 	// turn on pep8 error lint
 	"pep8": true,
+	// turn on pep257 error lint
+	"pep257": false,
 	// turn on naming error lint
 	"naming": true,
 	// turn off complexity check (set number > 0 to check complexity level)

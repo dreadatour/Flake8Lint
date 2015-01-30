@@ -27,6 +27,7 @@ import mccabe
 import pep8
 import pep8ext_naming
 import pyflakes.api
+from pep257 import PEP257Checker
 from pyflakes import checker as pyflakes_checker
 
 from flake8._pyflakes import patch_pyflakes
@@ -164,6 +165,14 @@ def lint(lines, settings):
         pep8style.input_file(filename=None, lines=lines.splitlines(True))
         warnings.extend(pep8style.options.report.errors)
 
+    if settings.get('pep257', False):
+        for error in PEP257Checker().check_source(lines, ''):
+            warnings.append((
+                getattr(error, 'line', 0),
+                0,
+                getattr(error, 'message', '')
+            ))
+
     try:
         tree = compile(lines, '', 'exec', ast.PyCF_ONLY_AST, True)
     except (SyntaxError, TypeError):
@@ -242,6 +251,10 @@ def lint_external(lines, settings, interpreter, linter):
         arguments.append('--pep8-max-line-length')
         arguments.append(str(max_line_length))
 
+    # do we need to run pep257 lint
+    if settings.get('pep257', False):
+        arguments.append('--pep257')
+
     # do we need to run naming lint
     if settings.get('naming', True):
         arguments.append('--naming')
@@ -296,6 +309,8 @@ if __name__ == "__main__":
                             help="python builtins extend")
     arg_parser.add_argument('--pep8', action='store_true',
                             help="run pep8 lint")
+    arg_parser.add_argument('--pep257', action='store_true',
+                            help="run pep257 lint")
     arg_parser.add_argument('--naming', action='store_true',
                             help="run naming lint")
     arg_parser.add_argument('--complexity', type=int,

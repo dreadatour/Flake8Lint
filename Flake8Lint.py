@@ -40,7 +40,7 @@ OPERATORS = [
 ]
 
 PROJECT_SETTINGS_KEYS = (
-    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'naming',
+    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'pep257', 'naming',
     'complexity', 'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
     'use_flake8_global_config', 'use_flake8_project_config',
 )
@@ -192,6 +192,9 @@ class Flake8LintSettings(object):
 
         # turn on pep8 error lint
         self.pep8 = bool(self.settings.get('pep8', True))
+
+        # turn on pep257 error lint
+        self.pep257 = bool(self.settings.get('pep257', False))
 
         # turn on naming error lint
         self.naming = bool(self.settings.get('naming', True))
