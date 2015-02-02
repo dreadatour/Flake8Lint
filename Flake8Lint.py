@@ -1095,7 +1095,7 @@ class Flake8Lint(object):
         # - we need to clear regions with fixed previous errors
         # - is user will turn off 'highlight' in settings and then run lint
         # - user adds file with errors to 'ignore_files' list
-        for level in ('warning', 'error', 'critical'):
+        for level in ('warning', 'error', 'critical', 'success'):
             view.erase_regions('flake8lint-{0}'.format(level))
 
         # we need to always erase status too. same situations.
