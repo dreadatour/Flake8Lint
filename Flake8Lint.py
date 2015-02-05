@@ -1224,6 +1224,9 @@ class Flake8Lint(object):
             errors_list = lint_external(lines, view_settings,
                                         interpreter, linter)
 
+        if not errors_list:
+            errors_list = []
+
         lint_time = time.time() - start_time
         log("lint time: {0:.3f}ms".format(lint_time))
         log("lint errors found: {0}".format(len(errors_list)))
