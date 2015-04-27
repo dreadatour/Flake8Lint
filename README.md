@@ -131,7 +131,7 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 
 	// select errors and warnings (e.g. ["E", "W6"])
 	"select": [],
-	// skip errors and warnings (e.g. ["E303", E4", "W"])
+	// skip errors and warnings (e.g. ["E303", "E4", "W"])
 	"ignore": [],
 
 	// files to ignore, for example: ["*.mako", "test*.py"]
