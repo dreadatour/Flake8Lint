@@ -10,7 +10,7 @@ try:
 except ImportError:
     from flake8.util import ast, iter_child_nodes
 
-__version__ = '0.2.2'
+__version__ = '0.3.2'
 
 LOWERCASE_REGEX = re.compile(r'[_a-z][_a-z0-9]*$')
 UPPERCASE_REGEX = re.compile(r'[_A-Z][_A-Z0-9]*$')
@@ -61,11 +61,24 @@ class NamingChecker(object):
     """Checker of PEP-8 Naming Conventions."""
     name = 'naming'
     version = __version__
+    ignore_names = ['setUp', 'tearDown', 'setUpClass', 'tearDownClass']
 
     def __init__(self, tree, filename):
         self.visitors = BaseASTCheck._checks
         self.parents = deque()
         self._node = tree
+
+    @classmethod
+    def add_options(cls, parser):
+        ignored = ','.join(cls.ignore_names)
+        parser.add_option('--ignore-names', default=ignored,
+                          action='store', type='string',
+                          help="Names that should be ignored.")
+        parser.config_options.append('ignore-names')
+
+    @classmethod
+    def parse_options(cls, options):
+        cls.ignore_names = options.ignore_names.split(', ')
 
     def run(self):
         return self.visit_tree(self._node) if self._node else ()
@@ -86,10 +99,13 @@ class NamingChecker(object):
             self.find_global_defs(node)
 
         method = 'visit_' + node.__class__.__name__.lower()
+        parents = self.parents
+        ignore_names = self.ignore_names
         for visitor in self.visitors:
-            if not hasattr(visitor, method):
+            visitor_method = getattr(visitor, method, None)
+            if visitor_method is None:
                 continue
-            for error in getattr(visitor, method)(node, self.parents):
+            for error in visitor_method(node, parents, ignore_names):
                 yield error
 
     def tag_class_functions(self, cls_node):
@@ -148,7 +164,7 @@ class ClassNameCheck(BaseASTCheck):
     check = MIXEDCASE_REGEX.match
     N801 = "class names should use CapWords convention"
 
-    def visit_classdef(self, node, parents):
+    def visit_classdef(self, node, parents, ignore=None):
         if not self.check(node.name):
             yield self.err(node, 'N801')
 
@@ -165,9 +181,11 @@ class FunctionNameCheck(BaseASTCheck):
     check = LOWERCASE_REGEX.match
     N802 = "function name should be lowercase"
 
-    def visit_functiondef(self, node, parents):
+    def visit_functiondef(self, node, parents, ignore=None):
         function_type = getattr(node, 'function_type', 'function')
         name = node.name
+        if ignore and name in ignore:
+            return
         if ((function_type == 'function' and '__' in (name[:2], name[-2:])) or
                 not self.check(name)):
             yield self.err(node, 'N802')
@@ -186,7 +204,7 @@ class FunctionArgNamesCheck(BaseASTCheck):
     N804 = "first argument of a classmethod should be named 'cls'"
     N805 = "first argument of a method should be named 'self'"
 
-    def visit_functiondef(self, node, parents):
+    def visit_functiondef(self, node, parents, ignore=None):
 
         def arg_name(arg):
             return getattr(arg, 'arg', arg)
@@ -231,7 +249,7 @@ class ImportAsCheck(BaseASTCheck):
     N813 = "camelcase imported as lowercase"
     N814 = "camelcase imported as constant"
 
-    def visit_importfrom(self, node, parents):
+    def visit_importfrom(self, node, parents, ignore=None):
         for name in node.names:
             if not name.asname:
                 continue
@@ -254,7 +272,7 @@ class VariablesInFunctionCheck(BaseASTCheck):
     check = LOWERCASE_REGEX.match
     N806 = "variable in function should be lowercase"
 
-    def visit_assign(self, node, parents):
+    def visit_assign(self, node, parents, ignore=None):
         for parent_func in reversed(parents):
             if isinstance(parent_func, ast.ClassDef):
                 return
@@ -267,4 +285,11 @@ class VariablesInFunctionCheck(BaseASTCheck):
             if not name or name in parent_func.global_names:
                 return
             if not self.check(name) and name[:1] != '_':
+                if isinstance(node.value, ast.Call):
+                    if isinstance(node.value.func, ast.Attribute):
+                        if node.value.func.attr == 'namedtuple':
+                            return
+                    elif isinstance(node.value.func, ast.Name):
+                        if node.value.func.id == 'namedtuple':
+                            return
                 yield self.err(target, 'N806')
