@@ -40,9 +40,9 @@ OPERATORS = [
 ]
 
 PROJECT_SETTINGS_KEYS = (
-    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'pep257', 'naming',
-    'complexity', 'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
-    'use_flake8_global_config', 'use_flake8_project_config',
+    'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'pydocstyle',
+    'naming', 'complexity', 'pep8_max_line_length', 'select', 'ignore',
+    'ignore_files', 'use_flake8_global_config', 'use_flake8_project_config',
 )
 FLAKE8_SETTINGS_KEYS = (
     'ignore', 'select', 'ignore_files', 'pep8_max_line_length'
@@ -193,8 +193,10 @@ class Flake8LintSettings(object):
         # turn on pep8 error lint
         self.pep8 = bool(self.settings.get('pep8', True))
 
-        # turn on pep257 error lint
-        self.pep257 = bool(self.settings.get('pep257', False))
+        # turn on pep257 error lint (DEPRECATED, use 'pydocstyle' setting)
+        pep257 = bool(self.settings.get('pep257', False))
+        # turn on pydocstyle error lint
+        self.pydocstyle = bool(self.settings.get('pydocstyle', pep257))
 
         # turn on naming error lint
         self.naming = bool(self.settings.get('naming', True))
@@ -218,6 +220,14 @@ class Flake8LintSettings(object):
 
         # skip errors and warnings (e.g. ["E303", E4", "W"])
         self.ignore = self.settings.get('ignore') or []
+
+        # Pydocstyle's 'D203 1 blank line required before class docstring' and
+        # 'D211 No blank lines allowed before class docstring' are in conflict
+        # with each other. We need to disable 'D203' by default. See also:
+        # - https://github.com/PyCQA/pydocstyle/issues/141
+        # - https://hg.python.org/peps/rev/9b715d8246db
+        if 'D203' not in self.ignore and 'D211' not in self.ignore:
+            self.ignore.append('D203')
 
         # files to ignore, for example: ["*.mako", "test*.py"]
         self.ignore_files = self.settings.get('ignore_files') or []
@@ -378,6 +388,10 @@ class SublimeView(object):
         view_settings = view.settings().get('flake8lint') or {}
         for param in PROJECT_SETTINGS_KEYS:
             result[param] = view_settings.get(param, getattr(settings, param))
+        # this is fallback to setting 'pydocstyle' old name 'pep257'
+        if hasattr(settings, 'pep257') and not hasattr(settings, 'pydocstyle'):
+            pep257 = getattr(settings, 'pep257')
+            result['pydocstyle'] = view_settings.get('pydocstyle', pep257)
 
         global_config = result.get('use_flake8_global_config', True)
         project_config = result.get('use_flake8_project_config', True)
