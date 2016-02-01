@@ -1,7 +1,7 @@
 Python Flake8 Lint
 ==================
 
-Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[PEP257](http://www.python.org/dev/peps/pep-0257/)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** and **[pep8-naming](https://github.com/flintwork/pep8-naming)**.
+Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[pydocstyle](https://github.com/PyCQA/pydocstyle)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** and **[pep8-naming](https://github.com/flintwork/pep8-naming)**.
 
 Based on **[bitbucket.org/tarek/flake8](https://bitbucket.org/tarek/flake8)**.
 
@@ -19,7 +19,7 @@ Lint tools
 
 There are additional tools used to lint Python files:
 
-* **[pep257](http://pypi.python.org/pypi/pep257)** is a static analysis tool for checking compliance with Python [PEP257](http://www.python.org/dev/peps/pep-0257/). This lint tool is disabled by default.
+* **[pydocstyle](https://github.com/PyCQA/pydocstyle)** is a static analysis tool for checking compliance with Python [PEP257](http://www.python.org/dev/peps/pep-0257/).
 
 * **[pep8-naming](https://github.com/flintwork/pep8-naming)** is a naming convention checker for Python.
 
@@ -119,8 +119,8 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"pyflakes": true,
 	// turn on pep8 error lint
 	"pep8": true,
-	// turn on pep257 error lint
-	"pep257": false,
+	// turn on pydocstyle error lint
+	"pydocstyle": true,
 	// turn on naming error lint
 	"naming": true,
 	// turn off complexity check (set number > 0 to check complexity level)
@@ -184,6 +184,7 @@ You could define per-project config for "Python Flake8 Lint". Use <kbd>Project</
 			"builtins": [],
 			"pyflakes": true,
 			"pep8": true,
+			"pydocstyle": true,
 			"naming": true,
 			"complexity": -1,
 			"pep8_max_line_length": 79,
@@ -204,6 +205,20 @@ Pep8 ignores "E123", "E226" and "E24" errors by default. This plugin will not ig
 If you're not agree with this plugin, please, add next string in your config:
 
     "ignore": ["E123", "E226", "E24"]
+
+
+Note
+----
+
+Pydocstyle's errors "D203 1 blank line required before class docstring" and "D211 No blank lines allowed before class docstring" are in conflict with each other. By default error "D203" is disabled. If you want to ignore "D203" error and use old-style class docstring ("D211"), add next string in your config:
+
+    "ignore": ["D203"]
+
+More info about old-style and new-style class docstrings:
+
+* [https://github.com/PyCQA/pydocstyle/issues/141](https://github.com/PyCQA/pydocstyle/issues/141)
+* [https://hg.python.org/peps/rev/9b715d8246db](https://hg.python.org/peps/rev/9b715d8246db)
+* [http://raspberry-python.blogspot.ru/2015/01/significant-pep257-change.html](http://raspberry-python.blogspot.ru/2015/01/significant-pep257-change.html)
 
 
 Features / Usage

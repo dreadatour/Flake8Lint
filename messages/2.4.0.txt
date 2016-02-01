@@ -1,0 +1,16 @@
+Python Flake8 Lint 2.4.0 Release Notes
+======================================
+
+IMPORTANT: pydocstyle (old pep257) linter is enabled by default now.
+           More info: https://github.com/PyCQA/pydocstyle
+
+
+- 'pep257' is DEPRECATED not, please, use new 'pydocstyle' setting in your config file
+
+- 'pydocstyle' use new-style class docstring by default, more info:
+  * https://github.com/PyCQA/pydocstyle/issues/141
+  * https://hg.python.org/peps/rev/9b715d8246db
+  * http://raspberry-python.blogspot.ru/2015/01/significant-pep257-change.html
+
+
+For details, please visit: https://github.com/dreadatour/Flake8Lint
