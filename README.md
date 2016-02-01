@@ -200,11 +200,11 @@ You could define per-project config for "Python Flake8 Lint". Use <kbd>Project</
 Note
 ----
 
-Pep8 ignores "E123", "E226" and "E24" errors by default. This plugin will not ignore them.
+Pep8 ignores "E121", "E123", "E126", "E226", "E24" and "E704" errors by default. This plugin will not ignore them.
 
 If you're not agree with this plugin, please, add next string in your config:
 
-    "ignore": ["E123", "E226", "E24"]
+    "ignore": ["E121", "E123", "E126", "E226", "E24", "E704"]
 
 
 Note

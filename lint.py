@@ -20,20 +20,20 @@ CONTRIB_PATH = os.path.join(os.path.dirname(__file__), 'contrib')
 if CONTRIB_PATH not in sys.path:
     sys.path.insert(0, CONTRIB_PATH)
 
-import ast
-import mccabe
-import pep8
-import pep8ext_naming
-import pyflakes.api
-from pydocstyle import (
+import ast  # noqa
+import mccabe  # noqa
+import pep8  # noqa
+import pep8ext_naming  # noqa
+import pyflakes.api  # noqa
+from pydocstyle import (  # noqa
     __version__ as pydocstyle_version,
     PEP257Checker
 )
-from pyflakes import (
+from pyflakes import (  # noqa
     __version__ as pyflakes_version,
     checker as pyflakes_checker
 )
-
+from flake8 import __version__ as flake8_version
 from flake8._pyflakes import patch_pyflakes  # noqa
 patch_pyflakes()
 
@@ -52,6 +52,7 @@ def tools_versions():
     """Return all lint tools versions."""
     return (
         ('pep8', pep8.__version__),
+        ('flake8', flake8_version),
         ('pyflakes', pyflakes_version),
         ('mccabe', mccabe.__version__),
         ('pydocstyle', pydocstyle_version),
