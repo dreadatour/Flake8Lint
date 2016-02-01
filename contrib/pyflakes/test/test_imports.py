@@ -473,6 +473,8 @@ class Test(TestCase):
         self.flakes('import fu; [fu for _ in range(1)]')
         self.flakes('import fu; [1 for _ in range(1) if fu]')
 
+    @skipIf(version_info >= (3,),
+            'in Python 3 list comprehensions execute in a separate scope')
     def test_redefinedByListComp(self):
         self.flakes('import fu; [1 for fu in range(1)]',
                     m.RedefinedInListComp)
@@ -503,10 +505,35 @@ class Test(TestCase):
         ''')
 
     def test_usedInGlobal(self):
+        """
+        A 'global' statement shadowing an unused import should not prevent it
+        from being reported.
+        """
         self.flakes('''
         import fu
         def f(): global fu
         ''', m.UnusedImport)
+
+    def test_usedAndGlobal(self):
+        """
+        A 'global' statement shadowing a used import should not cause it to be
+        reported as unused.
+        """
+        self.flakes('''
+            import foo
+            def f(): global foo
+            def g(): foo.is_used()
+        ''')
+
+    def test_assignedToGlobal(self):
+        """
+        Binding an import to a declared global should not cause it to be
+        reported as unused.
+        """
+        self.flakes('''
+            def f(): global foo; import foo
+            def g(): foo.is_used()
+        ''')
 
     @skipIf(version_info >= (3,), 'deprecated syntax')
     def test_usedInBackquote(self):

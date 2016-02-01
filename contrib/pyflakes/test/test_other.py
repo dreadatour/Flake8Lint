@@ -21,6 +21,8 @@ class Test(TestCase):
         f()
         ''', m.UndefinedLocal, m.UnusedVariable)
 
+    @skipIf(version_info >= (3,),
+            'in Python 3 list comprehensions execute in a separate scope')
     def test_redefinedInListComp(self):
         """
         Test that shadowing a variable in a list comprehension raises
@@ -220,6 +222,8 @@ class Test(TestCase):
             [a for a in '12']
         ''')
 
+    @skipIf(version_info >= (3,),
+            'in Python 3 list comprehensions execute in a separate scope')
     def test_redefinedElseInListComp(self):
         """
         Test that shadowing a variable in a list comprehension in
@@ -339,6 +343,15 @@ class Test(TestCase):
         def Foo():
             pass
         ''', m.RedefinedWhileUnused)
+
+    def test_classWithReturn(self):
+        """
+        If a return is used inside a class, a warning is emitted.
+        """
+        self.flakes('''
+        class Foo(object):
+            return
+        ''', m.ReturnOutsideFunction)
 
     @skip("todo: Too hard to make this warn but other cases stay silent")
     def test_doubleAssignment(self):
@@ -463,6 +476,15 @@ class Test(TestCase):
         foo.bar += foo.baz
         ''')
 
+    def test_globalDeclaredInDifferentScope(self):
+        """
+        A 'global' can be declared in one scope and reused in another.
+        """
+        self.flakes('''
+        def f(): global foo
+        def g(): foo = 'anything'; foo.is_used()
+        ''')
+
 
 class TestUnusedAssignment(TestCase):
     """
@@ -500,6 +522,30 @@ class TestUnusedAssignment(TestCase):
                 b = 1
                 return
         ''', m.UnusedVariable)
+
+    @skip("todo: Difficult because it does't apply in the context of a loop")
+    def test_unusedReassignedVariable(self):
+        """
+        Shadowing a used variable can still raise an UnusedVariable warning.
+        """
+        self.flakes('''
+        def a():
+            b = 1
+            b.foo()
+            b = 2
+        ''', m.UnusedVariable)
+
+    def test_variableUsedInLoop(self):
+        """
+        Shadowing a used variable cannot raise an UnusedVariable warning in the
+        context of a loop.
+        """
+        self.flakes('''
+        def a():
+            b = True
+            while b:
+                b = False
+        ''')
 
     def test_assignToGlobal(self):
         """
@@ -942,3 +988,55 @@ class TestUnusedAssignment(TestCase):
     def test_returnOnly(self):
         """Do not crash on lone "return"."""
         self.flakes('return 2')
+
+
+class TestAsyncStatements(TestCase):
+
+    @skipIf(version_info < (3, 5), 'new in Python 3.5')
+    def test_asyncDef(self):
+        self.flakes('''
+        async def bar():
+            return 42
+        ''')
+
+    @skipIf(version_info < (3, 5), 'new in Python 3.5')
+    def test_asyncDefAwait(self):
+        self.flakes('''
+        async def read_data(db):
+            await db.fetch('SELECT ...')
+        ''')
+
+    @skipIf(version_info < (3, 5), 'new in Python 3.5')
+    def test_asyncDefUndefined(self):
+        self.flakes('''
+        async def bar():
+            return foo()
+        ''', m.UndefinedName)
+
+    @skipIf(version_info < (3, 5), 'new in Python 3.5')
+    def test_asyncFor(self):
+        self.flakes('''
+        async def read_data(db):
+            output = []
+            async for row in db.cursor():
+                output.append(row)
+            return output
+        ''')
+
+    @skipIf(version_info < (3, 5), 'new in Python 3.5')
+    def test_asyncWith(self):
+        self.flakes('''
+        async def commit(session, data):
+            async with session.transaction():
+                await session.update(data)
+        ''')
+
+    @skipIf(version_info < (3, 5), 'new in Python 3.5')
+    def test_asyncWithItem(self):
+        self.flakes('''
+        async def commit(session, data):
+            async with session.transaction() as trans:
+                await trans.begin()
+                ...
+                await trans.end()
+        ''')
