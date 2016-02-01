@@ -25,10 +25,16 @@ import mccabe
 import pep8
 import pep8ext_naming
 import pyflakes.api
-from pydocstyle import PEP257Checker
-from pyflakes import checker as pyflakes_checker
+from pydocstyle import (
+    __version__ as pydocstyle_version,
+    PEP257Checker
+)
+from pyflakes import (
+    __version__ as pyflakes_version,
+    checker as pyflakes_checker
+)
 
-from flake8._pyflakes import patch_pyflakes
+from flake8._pyflakes import patch_pyflakes  # noqa
 patch_pyflakes()
 
 
@@ -40,6 +46,17 @@ else:
         'flake8'
     )
 CONFIG_FILES = ('setup.cfg', 'tox.ini', '.pep8')
+
+
+def tools_versions():
+    """Return all lint tools versions."""
+    return (
+        ('pep8', pep8.__version__),
+        ('pyflakes', pyflakes_version),
+        ('mccabe', mccabe.__version__),
+        ('pydocstyle', pydocstyle_version),
+        ('pep8-naming', pep8ext_naming.__version__),
+    )
 
 
 class Pep8Report(pep8.BaseReport):

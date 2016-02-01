@@ -17,11 +17,13 @@ import sublime_plugin
 
 try:
     from .color_theme import update_color_scheme
-    from .lint import lint, lint_external, load_flake8_config
+    from .lint import lint, lint_external, load_flake8_config, tools_versions
 except (ValueError, SystemError):
     from color_theme import update_color_scheme
-    from lint import lint, lint_external, load_flake8_config
+    from lint import lint, lint_external, load_flake8_config, tools_versions
 
+
+__version__ = '2.4.0'
 
 # copy-pasted from flake8.engine
 FLAKE8_NOQA = re.compile(r'flake8[:=]\s*noqa', re.I).search
@@ -1327,6 +1329,14 @@ def plugin_loaded():
     settings = Flake8LintSettings()
 
     log("plugin was loaded")
+
+    print("Lint tools versions:\n- Python Flake8 Lint: {0}{1}".format(
+        __version__,
+        ''.join((
+            "\n- {0}: {1}".format(tool[0], tool[1])
+            for tool in tools_versions()
+        ))
+    ))
 
     update_color_scheme(settings)
     Flake8Lint.on_file_load()
