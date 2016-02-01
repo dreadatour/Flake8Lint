@@ -14,7 +14,7 @@ try:
 except ImportError:   # Python 2.5
     from flake8.util import ast, iter_child_nodes
 
-__version__ = '0.3'
+__version__ = '0.4.0'
 
 
 class ASTVisitor(object):
@@ -133,6 +133,8 @@ class PathGraphingAstVisitor(ASTVisitor):
             self.graphs["%s%s" % (self.classname, node.name)] = self.graph
             self.reset()
 
+    visitAsyncFunctionDef = visitFunctionDef
+
     def visitClassDef(self, node):
         old_classname = self.classname
         self.classname += node.name + "."
@@ -158,13 +160,13 @@ class PathGraphingAstVisitor(ASTVisitor):
     visitAssert = visitAssign = visitAugAssign = visitDelete = visitPrint = \
         visitRaise = visitYield = visitImport = visitCall = visitSubscript = \
         visitPass = visitContinue = visitBreak = visitGlobal = visitReturn = \
-        visitSimpleStatement
+        visitAwait = visitSimpleStatement
 
     def visitLoop(self, node):
         name = "Loop %d" % node.lineno
         self._subgraph(node, name)
 
-    visitFor = visitWhile = visitLoop
+    visitAsyncFor = visitFor = visitWhile = visitLoop
 
     def visitIf(self, node):
         name = "If %d" % node.lineno
@@ -216,6 +218,8 @@ class PathGraphingAstVisitor(ASTVisitor):
         self.appendPathNode(name)
         self.dispatch_list(node.body)
 
+    visitAsyncWith = visitWith
+
 
 class McCabeChecker(object):
     """McCabe cyclomatic complexity checker."""
@@ -236,7 +240,7 @@ class McCabeChecker(object):
 
     @classmethod
     def parse_options(cls, options):
-        cls.max_complexity = options.max_complexity
+        cls.max_complexity = int(options.max_complexity)
 
     def run(self):
         if self.max_complexity < 0:
@@ -296,7 +300,8 @@ def main(argv=None):
     if options.dot:
         print('graph {')
         for graph in visitor.graphs.values():
-            if not options.threshold or graph.complexity() >= options.threshold:
+            if (not options.threshold or
+                    graph.complexity() >= options.threshold):
                 graph.to_dot()
         print('}')
     else:
