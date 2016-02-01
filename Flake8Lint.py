@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Flake8Lint: Sublime Text plugin.
+
 Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 from __future__ import print_function
@@ -56,15 +57,12 @@ settings = None
 
 
 class Flake8LintSettings(object):
-    """
-    Flake8Lint settings.
-    """
+    """Flake8Lint settings."""
+
     debug = False
 
     def __init__(self):
-        """
-        Initialize settings.
-        """
+        """Initialize settings."""
         editor_settings = sublime.load_settings('Preferences.sublime-settings')
         editor_settings.clear_on_change('flake8lint-color-scheme')
         editor_settings.add_on_change('flake8lint-color-scheme',
@@ -77,9 +75,7 @@ class Flake8LintSettings(object):
         self.setup()
 
     def setup(self):
-        """
-        Update settings.
-        """
+        """Update settings."""
         # debug mode (verbose output to ST python console)
         self.debug = bool(self.settings.get('debug', False))
 
@@ -234,8 +230,7 @@ class Flake8LintSettings(object):
 
 
 def log(msg, level=None):
-    """
-    Log to ST python console.
+    """Log to ST python console.
 
     If log level 'debug' (or None) print only if debug setting is enabled.
     """
@@ -249,22 +244,18 @@ def log(msg, level=None):
 
 
 def isspace(symbol):
-    """
-    Returns `True` if `symbol` is space or tab.
-    """
+    """Return `True` if `symbol` is space or tab."""
     return symbol in WHITESPACES
 
 
 def isname(symbol):
-    """
-    Returns `True` if `symbol` is part of function, class, etc name.
-    """
+    """Return `True` if `symbol` is part of function, class, etc name."""
     return bool(re.match(r'[_a-zA-Z0-9]', symbol))
 
 
 def operator_next(line, col):
-    """
-    Check if there is an operator in line, starting from `col`.
+    """Check if there is an operator in line, starting from `col`.
+
     Returns operator length if so.
     """
     line_piece = line[col:col + len(OPERATORS[0])]
@@ -274,8 +265,8 @@ def operator_next(line, col):
 
 
 def operator_prev(line, col):
-    """
-    Check if there is an operator in line, ends at `col`.
+    """Check if there is an operator in line, ends at `col`.
+
     Returns operator length if so.
     """
     line_piece = line[col - len(OPERATORS[0]):col]
@@ -285,9 +276,7 @@ def operator_prev(line, col):
 
 
 def find_in_string(pattern, line):
-    """
-    Find pattern in string and return start and end positions.
-    """
+    """Find pattern in string and return start and end positions."""
     match = re.search(r'\b{0}\b'.format(re.escape(pattern)), line)
     if match:
         func_pos = match.span()[0]
@@ -296,9 +285,7 @@ def find_in_string(pattern, line):
 
 
 def filename_match(filename, patterns):
-    """
-    Returns `True` if filename is matched with patterns.
-    """
+    """Return `True` if filename is matched with patterns."""
     for path_part in filename.split(os.path.sep):
         if any(fnmatch.fnmatch(path_part, pattern) for pattern in patterns):
             return True
@@ -306,15 +293,12 @@ def filename_match(filename, patterns):
 
 
 def skip_line_lint(line):
-    """
-    Check if we need to skip line check.
+    """Check if we need to skip line check.
 
     Returns `True` if line ends with '# noqa' or '# NOQA' comment.
     """
     def _noqa(line):
-        """
-        Check if line ends with 'noqa' comment.
-        """
+        """Check if line ends with 'noqa' comment."""
         return line.strip().lower().endswith('# noqa')
 
     skip = _noqa(line)
@@ -327,16 +311,14 @@ def skip_line_lint(line):
 
 
 class SublimeStatusBar(object):
-    """
-    Functions for update Sublime statusbar.
+    """Update Sublime statusbar functions.
 
     This is dummy class: simply group all statusbar methods together.
     """
+
     @staticmethod
     def update(view):
-        """
-        Update status bar with error.
-        """
+        """Update status bar with error."""
         # get view errors (exit if no errors found)
         view_errors = ERRORS_IN_VIEWS.get(view.id())
         if view_errors is None:
@@ -361,22 +343,19 @@ class SublimeStatusBar(object):
 
     @staticmethod
     def clear(view):
-        """
-        Clear status bar flake8 error.
-        """
+        """Clear status bar flake8 error."""
         view.erase_status('flake8-tip')
 
 
 class SublimeView(object):
-    """
-    Functions for Sublime view.
+    """Sublime view functions.
 
     This is dummy class: simply group all view methods together.
     """
+
     @staticmethod
     def view_settings(view):
-        """
-        Returns dict with view settings.
+        """Return dict with view settings.
 
         Settings are taken from (see README for more info):
         - ST plugin settings (global, user, project)
@@ -409,9 +388,7 @@ class SublimeView(object):
 
     @staticmethod
     def get_current_line(view):
-        """
-        Get current line (line under cursor).
-        """
+        """Get current line (line under cursor)."""
         view_selection = view.sel()
 
         if not view_selection:
@@ -424,9 +401,7 @@ class SublimeView(object):
 
     @staticmethod
     def set_ruler_guide(view):
-        """
-        Set view ruler guide.
-        """
+        """Set view ruler guide."""
         if not view.match_selector(0, 'source.python'):
             return
 
@@ -446,9 +421,8 @@ class SublimeView(object):
 
 
 class LintReport(object):
-    """
-    Show window with lint report.
-    """
+    """Show window with lint report."""
+
     view = None
     errors_list = []
     errors_to_show = []
@@ -462,6 +436,7 @@ class LintReport(object):
     is_popup = False
 
     def __init__(self, view, errors_list, view_settings, quiet=False):
+        """Initialize reporter."""
         self.view = view
         self.errors_list = errors_list
         self.errors_to_show = []
@@ -476,9 +451,7 @@ class LintReport(object):
             self.report_success(quiet=quiet)
 
     def get_gutter_mark(self):
-        """
-        Returns gutter mark icon or empty string if marks are disabled.
-        """
+        """Return gutter mark icon or empty string if marks are disabled."""
         # ST does not expect platform specific paths here, but only
         # forward-slash separated paths relative to "Packages"
         self.gutter_mark_success = '/'.join(
@@ -507,9 +480,7 @@ class LintReport(object):
                 self.gutter_mark += '.png'
 
     def prepare_settings(self, view_settings):
-        """
-        Get view lint settings.
-        """
+        """Get view lint settings."""
         self.get_gutter_mark()
 
         self.select = view_settings.get('select') or []
@@ -523,9 +494,7 @@ class LintReport(object):
         log("'is_popup' setting: {0}".format(self.is_popup))
 
     def error_region(self, full_line_text, line_point, error_msg, error_col):
-        """
-        Add error region to regions list.
-        """
+        """Add error region to regions list."""
         error_code, error_text = error_msg.split(' ', 1)
 
         line_text = full_line_text.rstrip('\r\n')
@@ -828,9 +797,7 @@ class LintReport(object):
         return start, end
 
     def prepare_errors(self, errors_list):
-        """
-        Filter errors list.
-        """
+        """Filter errors list."""
         log("prepare flake8 lint errors")
 
         view_errors = {}
@@ -912,9 +879,7 @@ class LintReport(object):
         ERRORS_IN_VIEWS[self.view.id()] = view_errors
 
     def show_errors(self, quiet=False):
-        """
-        Show all errors.
-        """
+        """Show all errors."""
         log("show flake8 lint errors")
 
         # this is fallback to default colors if our color scheme was not loaded
@@ -966,9 +931,7 @@ class LintReport(object):
             window.show_quick_panel(self.errors_to_show, self.error_selected)
 
     def error_selected(self, item_selected):
-        """
-        Error was selected - go to error.
-        """
+        """Error was selected - go to error."""
         if item_selected == -1:
             log("close errors popup window")
             return
@@ -995,9 +958,7 @@ class LintReport(object):
         SublimeStatusBar.update(self.view)
 
     def report_success(self, quiet=False):
-        """
-        Blink with gutter marks (success report).
-        """
+        """Blink with gutter marks (success report)."""
         if quiet:
             return
 
@@ -1021,16 +982,14 @@ class LintReport(object):
 
 
 class Flake8Lint(object):
-    """
-    Lint functions.
+    """Lint functions.
 
     This is dummy class: simply group all lint methods together.
     """
+
     @staticmethod
     def wait_and_lint(view):
-        """
-        Set rullers and run file lint after file was loaded.
-        """
+        """Set rullers and run file lint after file was loaded."""
         window = sublime.active_window()
         if not window:
             return
@@ -1048,8 +1007,8 @@ class Flake8Lint(object):
 
     @staticmethod
     def on_file_load(view=None, retry=False):
-        """
-        Run actions on file load.
+        """Run actions on file load.
+
         Wait until file was finally loaded and run actions if needed.
         """
         set_ruler_guide = settings.set_ruler_guide
@@ -1102,9 +1061,7 @@ class Flake8Lint(object):
 
     @staticmethod
     def cleanup(view):
-        """
-        Clear regions and statusbar.
-        """
+        """Clear regions and statusbar."""
         # we need to always clear regions. three situations here:
         # - we need to clear regions with fixed previous errors
         # - is user will turn off 'highlight' in settings and then run lint
@@ -1117,9 +1074,7 @@ class Flake8Lint(object):
 
     @staticmethod
     def do_lint(view, quiet=False):
-        """
-        Do view lint.
-        """
+        """Do view lint."""
         log("run flake8 lint")
 
         # check if view is scratch
@@ -1182,9 +1137,7 @@ class Flake8Lint(object):
 
     @staticmethod
     def async_lint(view, view_settings, quiet=False):
-        """
-        Do view lint asynchronously.
-        """
+        """Do view lint asynchronously."""
         # try to get interpreter
         interpreter = view_settings.get('python_interpreter', 'auto')
         log("python interpreter: {0}".format(interpreter))
@@ -1252,13 +1205,10 @@ class Flake8Lint(object):
 
 
 class Flake8NextErrorCommand(sublime_plugin.TextCommand):
-    """
-    Jump to next lint error command.
-    """
+    """Jump to next lint error command."""
+
     def run(self, edit):
-        """
-        Jump to next lint error.
-        """
+        """Jump to next lint error."""
         log("jump to next lint error")
 
         view_errors = ERRORS_IN_VIEWS.get(self.view.id())
@@ -1292,21 +1242,18 @@ class Flake8NextErrorCommand(sublime_plugin.TextCommand):
 
 
 class Flake8LintCommand(sublime_plugin.TextCommand):
-    """
-    Do flake8 lint on current file.
-    """
+    """Do flake8 lint on current file."""
+
     def run(self, edit):
-        """
-        Run flake8 lint.
-        """
+        """Run flake8 lint."""
         Flake8Lint.do_lint(self.view)
 
 
 class Flake8LintBackground(sublime_plugin.EventListener):
-    """
-    Listen to Siblime Text events.
-    """
+    """Listen to Siblime Text events."""
+
     def __init__(self, *args, **kwargs):
+        """Initialize events listener."""
         super(Flake8LintBackground, self).__init__(*args, **kwargs)
 
         self._last_selected_line = None
@@ -1318,15 +1265,11 @@ class Flake8LintBackground(sublime_plugin.EventListener):
             self.set_timeout = sublime.set_timeout
 
     def on_load(self, view):
-        """
-        Do lint on file load.
-        """
+        """Do lint on file load."""
         Flake8Lint.on_file_load(view)
 
     def on_post_save(self, view):
-        """
-        Do lint on file save.
-        """
+        """Do lint on file save."""
         if view.is_scratch():
             log("skip lint because view is scratch")
             return  # do not lint scratch views
@@ -1338,9 +1281,7 @@ class Flake8LintBackground(sublime_plugin.EventListener):
             log("skip lint by 'on_post_save' hook due to plugin settings")
 
     def on_selection_modified(self, view):
-        """
-        Selection was modified: update status bar.
-        """
+        """Selection was modified: update status bar."""
         if view.is_scratch():
             return  # do not lint scratch views
 
@@ -1357,23 +1298,19 @@ class Flake8LintBackground(sublime_plugin.EventListener):
             SublimeStatusBar.update(view)
 
     def on_modified(self, view):
-        """
-        View was modified: run delayed lint if needed.
-        """
+        """View was modified: run delayed lint if needed."""
         if settings.live_mode:
             self.delayed_lint(view)
 
     def delayed_lint(self, view):
-        """
-        Lint view delayed.
-        """
+        """Lint view delayed."""
         keypress_time = time.time()
         view_id = view.id()
         self._latest_keypresses[view_id] = keypress_time
 
         def callback():
-            """
-            Live mode lint delay callback.
+            """Live mode lint delay callback.
+
             Run lint if no key pressed after timeout was set.
             """
             if self._latest_keypresses.get(view_id, None) == keypress_time:
@@ -1384,9 +1321,7 @@ class Flake8LintBackground(sublime_plugin.EventListener):
 
 
 def plugin_loaded():
-    """
-    Do some staff when 'plugin was loaded' event appears.
-    """
+    """Do some staff when 'plugin was loaded' event appears."""
     global settings
 
     settings = Flake8LintSettings()

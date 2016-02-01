@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Flake8 lint worker.
-"""
+"""Flake8 lint worker."""
 from __future__ import print_function
 import os
 import sys
@@ -45,21 +43,16 @@ CONFIG_FILES = ('setup.cfg', 'tox.ini', '.pep8')
 
 
 class Pep8Report(pep8.BaseReport):
-    """
-    Collect all check results.
-    """
+    """Collect all check results."""
+
     def __init__(self, options):
-        """
-        Initialize reporter.
-        """
+        """Initialize reporter."""
         super(Pep8Report, self).__init__(options)
         # errors "collection"
         self.errors = []
 
     def error(self, line_number, offset, text, check):
-        """
-        Get error and save it into errors collection.
-        """
+        """Get error and save it into errors collection."""
         code = super(Pep8Report, self).error(line_number, offset, text, check)
         if code:
             self.errors.append((self.line_offset + line_number, offset, text))
@@ -67,21 +60,18 @@ class Pep8Report(pep8.BaseReport):
 
 
 class FlakesReporter(object):
-    """
-    Formats the results of pyflakes to the linter.
+    """Formats the results of pyflakes to the linter.
+
     Example at 'pyflakes.reporter.Reporter' class.
     """
+
     def __init__(self):
-        """
-        Construct a Reporter.
-        """
+        """Construct a Reporter."""
         # errors "collection"
         self.errors = []
 
     def unexpectedError(self, filename, msg):  # noqa
-        """
-        An unexpected error occurred trying to process filename.
-        """
+        """An unexpected error occurred trying to process filename."""
         self.errors.append((0, 0, msg))
 
     def syntaxError(self, filename, msg, lineno, offset, text):  # noqa
@@ -96,9 +86,7 @@ class FlakesReporter(object):
             self.errors.append((lineno, 0, msg))
 
     def flake(self, msg):
-        """
-        Pyflakes found something wrong with the code.
-        """
+        """Add pyflakes error to the list of errors."""
         # unused import has no col attr, seems buggy... this fixes it
         col = getattr(msg, 'col', 0)
         self.errors.append(
@@ -107,8 +95,7 @@ class FlakesReporter(object):
 
 
 def load_flake8_config(filename, global_config=False, project_config=False):
-    """
-    Returns flake8 settings from config file.
+    """Return flake8 settings from config file.
 
     More info: http://flake8.readthedocs.org/en/latest/config.html
     """
@@ -150,9 +137,7 @@ def load_flake8_config(filename, global_config=False, project_config=False):
 
 
 def lint(lines, settings):
-    """
-    Run flake8 lint with internal interpreter.
-    """
+    """Run flake8 lint with internal interpreter."""
     warnings = []
 
     # lint with pep8
@@ -228,9 +213,7 @@ def lint(lines, settings):
 
 
 def lint_external(lines, settings, interpreter, linter):
-    """
-    Run flake8 lint with external interpreter.
-    """
+    """Run flake8 lint with external interpreter."""
     import subprocess
 
     # first argument is interpreter

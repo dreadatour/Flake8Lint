@@ -103,9 +103,7 @@ STYLE_MAP = {
 
 
 def update_color_scheme(settings):
-    """
-    Modify  the current color scheme to contain Flake8Lint color entries
-    as set in Flake8Lint.sublime-settings.
+    """Modify  the current color scheme to contain Flake8Lint color entries.
 
     Asynchronously call generate_color_scheme_async.
     """
@@ -117,9 +115,7 @@ def update_color_scheme(settings):
     sublime3 = int(sublime.version()) >= 3000
 
     def generate_color_scheme_async():
-        """
-        Modify current color scheme asynchronously.
-        """
+        """Modify current color scheme asynchronously."""
         # find and parse current theme
         prefs = sublime.load_settings('Preferences.sublime-settings')
         scheme = prefs.get('color_scheme')
