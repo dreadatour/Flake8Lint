@@ -33,7 +33,7 @@ from pyflakes import (  # noqa
     __version__ as pyflakes_version,
     checker as pyflakes_checker
 )
-from flake8 import __version__ as flake8_version
+from flake8 import __version__ as flake8_version  # noqa
 from flake8._pyflakes import patch_pyflakes  # noqa
 patch_pyflakes()
 

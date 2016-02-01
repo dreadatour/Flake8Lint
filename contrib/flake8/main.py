@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 import os
+import re
 import sys
 
 import setuptools
 
 from flake8.engine import get_parser, get_style_guide
-from flake8.util import is_flag, flag_on
+from flake8.util import option_normalizer
 
 if sys.platform.startswith('win'):
     DEFAULT_CONFIG = os.path.expanduser(r'~\.flake8')
@@ -15,7 +16,7 @@ else:
         'flake8'
     )
 
-EXTRA_IGNORE = ['.tox']
+EXTRA_IGNORE = []
 
 
 def main():
@@ -32,7 +33,8 @@ def main():
     report = flake8_style.check_files()
 
     exit_code = print_report(report, flake8_style)
-    raise SystemExit(exit_code > 0)
+    if exit_code > 0:
+        raise SystemExit(exit_code > 0)
 
 
 def print_report(report, flake8_style):
@@ -102,8 +104,11 @@ class Flake8Command(setuptools.Command):
             value = getattr(self, option_name)
             if value is None:
                 continue
-            if is_flag(value):
-                value = flag_on(value)
+            value = option_normalizer(value)
+            # Check if there's any values that need to be fixed.
+            if option_name == "include" and isinstance(value, str):
+                value = re.findall('[^,;\s]+', value)
+
             self.options_dict[option_name] = value
 
     def distribution_files(self):
@@ -133,4 +138,5 @@ class Flake8Command(setuptools.Command):
         # Run the checkers
         report = flake8_style.check_files()
         exit_code = print_report(report, flake8_style)
-        raise SystemExit(exit_code > 0)
+        if exit_code > 0:
+            raise SystemExit(exit_code > 0)
