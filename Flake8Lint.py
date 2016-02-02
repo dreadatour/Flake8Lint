@@ -51,6 +51,7 @@ FLAKE8_SETTINGS_KEYS = (
     'ignore', 'select', 'ignore_files', 'pep8_max_line_length'
 )
 
+DISABLED_VIEWS = set()
 ERRORS_IN_VIEWS = {}
 PLUGIN_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -1064,6 +1065,9 @@ class Flake8Lint(object):
     @staticmethod
     def cleanup(view):
         """Clear regions and statusbar."""
+        # cleanup errors in cache
+        ERRORS_IN_VIEWS.pop(view.id(), None)
+
         # we need to always clear regions. three situations here:
         # - we need to clear regions with fixed previous errors
         # - is user will turn off 'highlight' in settings and then run lint
@@ -1078,6 +1082,11 @@ class Flake8Lint(object):
     def do_lint(view, quiet=False):
         """Do view lint."""
         log("run flake8 lint")
+
+        if view.id() in DISABLED_VIEWS:
+            log("skip lint because view linting is disabled")
+            Flake8Lint.cleanup(view)
+            return
 
         # check if view is scratch
         if view.is_scratch():
@@ -1206,12 +1215,27 @@ class Flake8Lint(object):
         LintReport(view, errors_list, view_settings, quiet=quiet)
 
 
+class Flake8DisableCommand(sublime_plugin.TextCommand):
+    """Disable current view linting."""
+
+    def run(self, edit):
+        """Disable current view linting."""
+        DISABLED_VIEWS.add(self.view.id())
+        Flake8Lint.cleanup(self.view)
+
+
 class Flake8NextErrorCommand(sublime_plugin.TextCommand):
     """Jump to next lint error command."""
 
     def run(self, edit):
         """Jump to next lint error."""
         log("jump to next lint error")
+
+        if self.view.id() in DISABLED_VIEWS:
+            log("view lint is disabled")
+            if not sublime.ok_cancel_dialog("Enable lint for this view?"):
+                return
+            DISABLED_VIEWS.remove(self.view.id())
 
         view_errors = ERRORS_IN_VIEWS.get(self.view.id())
         if not view_errors:
@@ -1248,6 +1272,12 @@ class Flake8LintCommand(sublime_plugin.TextCommand):
 
     def run(self, edit):
         """Run flake8 lint."""
+        if self.view.id() in DISABLED_VIEWS:
+            log("view lint is disabled")
+            if not sublime.ok_cancel_dialog("Enable lint for this view?"):
+                return
+            DISABLED_VIEWS.remove(self.view.id())
+
         Flake8Lint.do_lint(self.view)
 
 

@@ -1,4 +1,5 @@
 [
 	{ "keys": ["ctrl+alt+8"], "command": "flake8_lint" },
-	{ "keys": ["ctrl+alt+9"], "command": "flake8_next_error" }
+	{ "keys": ["ctrl+alt+9"], "command": "flake8_next_error" },
+	{ "keys": ["ctrl+alt+0"], "command": "flake8_disable" }
 ]

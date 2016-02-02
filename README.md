@@ -241,3 +241,11 @@ Use these keys (by default) to jump to next lint error:
 * OS X: <kbd>Ctrl+Super+9</kbd>
 * Linux: <kbd>Ctrl+Alt+9</kbd>
 * Windows: <kbd>Ctrl+Alt+Shift+9</kbd>
+
+Use these keys (by default) to disable current file linting:
+
+* OS X: <kbd>Ctrl+Super+0</kbd>
+* Linux: <kbd>Ctrl+Alt+0</kbd>
+* Windows: <kbd>Ctrl+Alt+Shift+0</kbd>
+
+[![Commands list](https://habrastorage.org/files/1b3/fe1/32f/1b3fe132f6f24516a59474486b56a224.png)](https://habrastorage.org/files/1b3/fe1/32f/1b3fe132f6f24516a59474486b56a224.png)

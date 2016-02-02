@@ -1,4 +1,5 @@
 [
     { "caption": "User: Python Flake8 Lint", "command": "flake8_lint" },
-    { "caption": "User: Jump to next Flake8 Lint error", "command": "flake8_next_error" }
+    { "caption": "User: Jump to next Flake8 Lint error", "command": "flake8_next_error" },
+    { "caption": "User: Disable Python Flake8 Lint for this file", "command": "flake8_disable"}
 ]
