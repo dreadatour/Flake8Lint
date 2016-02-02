@@ -220,14 +220,6 @@ class Flake8LintSettings(object):
         # skip errors and warnings (e.g. ["E303", E4", "W"])
         self.ignore = self.settings.get('ignore') or []
 
-        # Pydocstyle's 'D203 1 blank line required before class docstring' and
-        # 'D211 No blank lines allowed before class docstring' are in conflict
-        # with each other. We need to disable 'D203' by default. See also:
-        # - https://github.com/PyCQA/pydocstyle/issues/141
-        # - https://hg.python.org/peps/rev/9b715d8246db
-        if 'D203' not in self.ignore and 'D211' not in self.ignore:
-            self.ignore.append('D203')
-
         # files to ignore, for example: ["*.mako", "test*.py"]
         self.ignore_files = self.settings.get('ignore_files') or []
 
@@ -841,10 +833,21 @@ class LintReport(object):
                     continue
 
             # check if user has a setting for ignore some errors
-            if self.ignore:
-                if [c for c in self.ignore if error_code.startswith(c)]:
-                    log("error does fit in 'ignore' settings")
-                    continue
+            if not self.ignore:
+                self.ignore = []
+
+            # Pydocstyle's 'D203 1 blank line required before class docstring'
+            # and 'D211 No blank lines allowed before class docstring' are  in
+            # conflict with each other. We need to disable 'D203' by default.
+            # See also:
+            # - https://github.com/PyCQA/pydocstyle/issues/141
+            # - https://hg.python.org/peps/rev/9b715d8246db
+            if 'D203' not in self.ignore and 'D211' not in self.ignore:
+                self.ignore.append('D203')
+
+            if [c for c in self.ignore if error_code.startswith(c)]:
+                log("error does fit in 'ignore' settings")
+                continue
 
             # add error to filtered errors list
             errors_list_filtered.append(error)
