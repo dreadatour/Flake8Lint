@@ -5,6 +5,7 @@ Flake8Lint: Sublime Text plugin.
 Check Python files with flake8 (PEP8, pyflake and mccabe)
 """
 from __future__ import print_function
+
 import fnmatch
 import itertools
 import os
@@ -44,8 +45,8 @@ OPERATORS = [
 
 PROJECT_SETTINGS_KEYS = (
     'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'pydocstyle',
-    'naming', 'debugger', 'complexity', 'pep8_max_line_length',
-    'select', 'ignore', 'ignore_files',
+    'naming', 'debugger', 'import_order', 'import_order_style', 'complexity',
+    'pep8_max_line_length', 'select', 'ignore', 'ignore_files',
     'use_flake8_global_config', 'use_flake8_project_config',
 )
 FLAKE8_SETTINGS_KEYS = (
@@ -203,6 +204,16 @@ class Flake8LintSettings(object):
 
         # turn on flake8-debugger error lint
         self.debugger = bool(self.settings.get('debugger', True))
+
+        # turn on import order error lint
+        self.import_order = bool(self.settings.get('import-order', True))
+
+        # get import order style
+        import_order_style = self.settings.get('import-order-style')
+        if import_order_style in ('cryptography', 'google'):
+            self.import_order_style = import_order_style
+        else:
+            self.import_order_style = 'cryptography'
 
         # turn off complexity check (set number > 0 to check complexity level)
         try:

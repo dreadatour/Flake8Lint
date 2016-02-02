@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 """Flake8 lint worker."""
 from __future__ import print_function
+
+import ast
 import os
 import sys
 
@@ -20,12 +22,16 @@ CONTRIB_PATH = os.path.join(os.path.dirname(__file__), 'contrib')
 if CONTRIB_PATH not in sys.path:
     sys.path.insert(0, CONTRIB_PATH)
 
-import ast
+from flake8 import __version__ as flake8_version
+from flake8._pyflakes import patch_pyflakes
+import flake8_debugger
+from flake8_import_order import (
+    __version__ as flake8_import_order_version,
+    ImportOrderChecker
+)
 import mccabe
 import pep8
 import pep8ext_naming
-import flake8_debugger
-import pyflakes.api
 from pydocstyle import (
     __version__ as pydocstyle_version,
     PEP257Checker
@@ -34,10 +40,9 @@ from pyflakes import (
     __version__ as pyflakes_version,
     checker as pyflakes_checker
 )
-from flake8 import __version__ as flake8_version
-from flake8._pyflakes import patch_pyflakes
-patch_pyflakes()
+import pyflakes.api
 
+patch_pyflakes()
 
 if sys.platform.startswith('win'):
     DEFAULT_CONFIG_FILE = os.path.expanduser(r'~\.flake8')
@@ -57,8 +62,9 @@ def tools_versions():
         ('pyflakes', pyflakes_version),
         ('mccabe', mccabe.__version__),
         ('pydocstyle', pydocstyle_version),
-        ('pep8-naming', pep8ext_naming.__version__),
-        ('flake8-debugger', flake8_debugger.__version__),
+        ('naming', pep8ext_naming.__version__),
+        ('debugger', flake8_debugger.__version__),
+        ('import-order', flake8_import_order_version),
     )
 
 
@@ -112,6 +118,32 @@ class FlakesReporter(object):
         self.errors.append(
             (msg.lineno, col, msg.flake8_msg % msg.message_args)
         )
+
+
+class ImportOrderLinter(ImportOrderChecker):
+    """Import order linter."""
+
+    def __init__(self, tree, filename, lines, order_style='cryptography'):
+        """Initialize linter."""
+        super(ImportOrderLinter, self).__init__(filename, tree)
+        self.lines = lines
+        self.options = {
+            'import_order_style': order_style,
+        }
+
+    def load_file(self):
+        """Load file."""
+        pass
+
+    def error(self, node, code, message):
+        """Format lint error."""
+        lineno, col_offset = node.lineno, node.col_offset
+        return (lineno, col_offset, '{0} {1}'.format(code, message))
+
+    def run(self):
+        """Run lint."""
+        for error in self.check_order():
+            yield error
 
 
 def load_flake8_config(filename, global_config=False, project_config=False):
@@ -227,6 +259,13 @@ def lint(lines, settings):
                     (warn.get("line"), warn.get("col"), warn.get("message"))
                 )
 
+        # lint with import order
+        if settings.get('import-order', True):
+            order_style = settings.get('import_order_style')
+            import_linter = ImportOrderLinter(tree, None, lines, order_style)
+            for error in import_linter.run():
+                warnings.append(error[0:3])
+
         # check complexity
         try:
             complexity = int(settings.get('complexity', -1))
@@ -275,6 +314,17 @@ def lint_external(lines, settings, interpreter, linter):
     # do we need to run debugger lint
     if settings.get('debugger', True):
         arguments.append('--debugger')
+
+    # do we need to run import order lint
+    if settings.get('import_order', True):
+        arguments.append('--import-order')
+
+    # get import order style
+    import_order_style = settings.get('import_order_style')
+    if import_order_style in ('cryptography', 'google'):
+        arguments.extend(('--import-order-style', import_order_style))
+    else:
+        arguments.extend(('--import-order-style', 'cryptography'))
 
     # do we need to run complexity check
     complexity = settings.get('complexity', -1)
@@ -332,6 +382,10 @@ if __name__ == "__main__":
                             help="run naming lint")
     arg_parser.add_argument('--debugger', action='store_true',
                             help="run debugger lint")
+    arg_parser.add_argument('--import-order', action='store_true',
+                            help="run import order lint")
+    arg_parser.add_argument('--import-order-style',
+                            help="import order style: cryptography or google")
     arg_parser.add_argument('--complexity', type=int,
                             help="check complexity")
     arg_parser.add_argument('--pep8-max-line-length', type=int, default=79,

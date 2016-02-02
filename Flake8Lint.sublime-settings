@@ -71,6 +71,11 @@
 	"naming": true,
 	// turn on debugger error lint
 	"debugger": true,
+	// turn on import order error lint
+	"import-order": false,
+	// import order style: "cryptography" or "google"
+	// See also: https://github.com/public/flake8-import-order#configuration
+	"import-order-style": "cryptography",
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 

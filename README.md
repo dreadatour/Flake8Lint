@@ -1,7 +1,7 @@
 Python Flake8 Lint
 ==================
 
-Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[pydocstyle](https://github.com/PyCQA/pydocstyle)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)** and **[pep8-naming](https://github.com/flintwork/pep8-naming)**.
+Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[pydocstyle](https://github.com/PyCQA/pydocstyle)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)**, **[pep8-naming](https://github.com/flintwork/pep8-naming)**, **[flake8-debugger](https://github.com/JBKahn/flake8-debugger)** and **[flake8-import-order](https://github.com/public/flake8-import-order)**.
 
 Based on **[bitbucket.org/tarek/flake8](https://bitbucket.org/tarek/flake8)**.
 
@@ -24,6 +24,8 @@ There are additional tools used to lint Python files:
 * **[pep8-naming](https://github.com/flintwork/pep8-naming)** is a naming convention checker for Python.
 
 * **[flake8-debugger](https://github.com/JBKahn/flake8-debugger)** is a flake8 debug statement checker.
+
+* **[flake8-import-order](https://github.com/public/flake8-import-order)** is a flake8 plugin that checks import order in the fashion of the Google Python Style Guide (turned off by default).
 
 
 Install
@@ -127,6 +129,11 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"naming": true,
 	// turn on debugger error lint
 	"debugger": true,
+	// turn on import order error lint
+	"import-order": false,
+	// import order style: "cryptography" or "google"
+	// See also: https://github.com/public/flake8-import-order#configuration
+	"import-order-style": "cryptography",
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 
@@ -190,6 +197,8 @@ You could define per-project config for "Python Flake8 Lint". Use <kbd>Project</
 			"pep8": true,
 			"pydocstyle": true,
 			"naming": true,
+			"import-order": true,
+			"import-order-style": "google",
 			"complexity": -1,
 			"pep8_max_line_length": 79,
 			"select": [],
@@ -201,8 +210,8 @@ You could define per-project config for "Python Flake8 Lint". Use <kbd>Project</
 ```
 
 
-Note
-----
+Note 1
+------
 
 Pep8 ignores "E121", "E123", "E126", "E226", "E24" and "E704" errors by default. This plugin will not ignore them.
 
@@ -211,8 +220,8 @@ If you're not agree with this plugin, please, add next string in your config:
     "ignore": ["E121", "E123", "E126", "E226", "E24", "E704"]
 
 
-Note
-----
+Note 2
+------
 
 Pydocstyle's errors "D203 1 blank line required before class docstring" and "D211 No blank lines allowed before class docstring" are in conflict with each other. By default error "D203" is disabled. If you want to ignore "D203" error and use old-style class docstring ("D211"), add next string in your config:
 
