@@ -23,6 +23,8 @@ There are additional tools used to lint Python files:
 
 * **[pep8-naming](https://github.com/flintwork/pep8-naming)** is a naming convention checker for Python.
 
+* **[flake8-debugger](https://github.com/JBKahn/flake8-debugger)** is a flake8 debug statement checker.
+
 
 Install
 -------
@@ -123,6 +125,8 @@ Default "Python Flake8 Lint" plugin config: <kbd>Preferences</kbd>-><kbd>Package
 	"pydocstyle": true,
 	// turn on naming error lint
 	"naming": true,
+	// turn on debugger error lint
+	"debugger": true,
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 

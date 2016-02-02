@@ -44,8 +44,9 @@ OPERATORS = [
 
 PROJECT_SETTINGS_KEYS = (
     'python_interpreter', 'builtins', 'pyflakes', 'pep8', 'pydocstyle',
-    'naming', 'complexity', 'pep8_max_line_length', 'select', 'ignore',
-    'ignore_files', 'use_flake8_global_config', 'use_flake8_project_config',
+    'naming', 'debugger', 'complexity', 'pep8_max_line_length',
+    'select', 'ignore', 'ignore_files',
+    'use_flake8_global_config', 'use_flake8_project_config',
 )
 FLAKE8_SETTINGS_KEYS = (
     'ignore', 'select', 'ignore_files', 'pep8_max_line_length'
@@ -199,6 +200,9 @@ class Flake8LintSettings(object):
 
         # turn on naming error lint
         self.naming = bool(self.settings.get('naming', True))
+
+        # turn on flake8-debugger error lint
+        self.debugger = bool(self.settings.get('debugger', True))
 
         # turn off complexity check (set number > 0 to check complexity level)
         try:

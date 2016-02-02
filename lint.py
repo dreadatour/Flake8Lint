@@ -20,21 +20,22 @@ CONTRIB_PATH = os.path.join(os.path.dirname(__file__), 'contrib')
 if CONTRIB_PATH not in sys.path:
     sys.path.insert(0, CONTRIB_PATH)
 
-import ast  # noqa
-import mccabe  # noqa
-import pep8  # noqa
-import pep8ext_naming  # noqa
-import pyflakes.api  # noqa
-from pydocstyle import (  # noqa
+import ast
+import mccabe
+import pep8
+import pep8ext_naming
+import flake8_debugger
+import pyflakes.api
+from pydocstyle import (
     __version__ as pydocstyle_version,
     PEP257Checker
 )
-from pyflakes import (  # noqa
+from pyflakes import (
     __version__ as pyflakes_version,
     checker as pyflakes_checker
 )
-from flake8 import __version__ as flake8_version  # noqa
-from flake8._pyflakes import patch_pyflakes  # noqa
+from flake8 import __version__ as flake8_version
+from flake8._pyflakes import patch_pyflakes
 patch_pyflakes()
 
 
@@ -57,6 +58,7 @@ def tools_versions():
         ('mccabe', mccabe.__version__),
         ('pydocstyle', pydocstyle_version),
         ('pep8-naming', pep8ext_naming.__version__),
+        ('flake8-debugger', flake8_debugger.__version__),
     )
 
 
@@ -215,12 +217,22 @@ def lint(lines, settings):
             for error in checker.run():
                 warnings.append(error[0:3])
 
+        # lint with flake8-debugger
+        if settings.get('debugger', True):
+            debug_warns = flake8_debugger.check_tree_for_debugger_statements(
+                tree, []
+            )
+            for warn in debug_warns:
+                warnings.append(
+                    (warn.get("line"), warn.get("col"), warn.get("message"))
+                )
+
+        # check complexity
         try:
             complexity = int(settings.get('complexity', -1))
         except (TypeError, ValueError):
             complexity = -1
 
-        # check complexity
         if complexity > -1:
             mccabe.McCabeChecker.max_complexity = complexity
             checker = mccabe.McCabeChecker(tree, None)
@@ -259,6 +271,10 @@ def lint_external(lines, settings, interpreter, linter):
     # do we need to run naming lint
     if settings.get('naming', True):
         arguments.append('--naming')
+
+    # do we need to run debugger lint
+    if settings.get('debugger', True):
+        arguments.append('--debugger')
 
     # do we need to run complexity check
     complexity = settings.get('complexity', -1)
@@ -314,6 +330,8 @@ if __name__ == "__main__":
                             help="run pydocstyle lint")
     arg_parser.add_argument('--naming', action='store_true',
                             help="run naming lint")
+    arg_parser.add_argument('--debugger', action='store_true',
+                            help="run debugger lint")
     arg_parser.add_argument('--complexity', type=int,
                             help="check complexity")
     arg_parser.add_argument('--pep8-max-line-length', type=int, default=79,

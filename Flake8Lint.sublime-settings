@@ -69,6 +69,8 @@
 	"pydocstyle": true,
 	// turn on naming error lint
 	"naming": true,
+	// turn on debugger error lint
+	"debugger": true,
 	// turn off complexity check (set number > 0 to check complexity level)
 	"complexity": -1,
 
