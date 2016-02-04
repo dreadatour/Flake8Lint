@@ -260,7 +260,7 @@ def lint(lines, settings):
                 )
 
         # lint with import order
-        if settings.get('import-order', False):
+        if settings.get('import_order', False):
             order_style = settings.get('import_order_style')
             import_linter = ImportOrderLinter(tree, None, lines, order_style)
             for error in import_linter.run():
