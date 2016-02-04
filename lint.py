@@ -260,7 +260,7 @@ def lint(lines, settings):
                 )
 
         # lint with import order
-        if settings.get('import-order', True):
+        if settings.get('import-order', False):
             order_style = settings.get('import_order_style')
             import_linter = ImportOrderLinter(tree, None, lines, order_style)
             for error in import_linter.run():
@@ -316,7 +316,7 @@ def lint_external(lines, settings, interpreter, linter):
         arguments.append('--debugger')
 
     # do we need to run import order lint
-    if settings.get('import_order', True):
+    if settings.get('import_order', False):
         arguments.append('--import-order')
 
     # get import order style
