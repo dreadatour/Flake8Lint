@@ -24,7 +24,7 @@ except (ValueError, SystemError):
     from lint import lint, lint_external, load_flake8_config, tools_versions
 
 
-__version__ = '2.4.1'
+__version__ = '2.4.3'
 
 # copy-pasted from flake8.engine
 FLAKE8_NOQA = re.compile(r'flake8[:=]\s*noqa', re.I).search
