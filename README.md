@@ -1,6 +1,8 @@
 Python Flake8 Lint
 ==================
 
+**⚠️ IMPORTANT NOTE**: unfortunately, I have no time now to maintain this project. I am really sorry. Please, contact me if you want to be a maintaner or use another plugins like `SublimeLinter-flake8`.
+
 Python Flake8 Lint is a Sublime Text 2/3 plugin for check Python files against some of the style conventions in **[PEP8](http://www.python.org/dev/peps/pep-0008/)**, **[pydocstyle](https://github.com/PyCQA/pydocstyle)**, **[PyFlakes](https://launchpad.net/pyflakes)**, **[mccabe](http://nedbatchelder.com/blog/200803/python_code_complexity_microtool.html)**, **[pep8-naming](https://github.com/flintwork/pep8-naming)**, **[flake8-debugger](https://github.com/JBKahn/flake8-debugger)** and **[flake8-import-order](https://github.com/public/flake8-import-order)**.
 
 Based on **[bitbucket.org/tarek/flake8](https://bitbucket.org/tarek/flake8)**.
